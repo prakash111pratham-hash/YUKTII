@@ -1,0 +1,6 @@
+{
+  "name": "YUKTI",
+  "description": "YUKTI - Comprehensive 4-Year Engineering Journey & Campus Placement Hub with AI Mentor, Google Workspace Integration, and Skill Progress Analytics.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

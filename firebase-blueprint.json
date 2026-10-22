@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Student engineering profile and academic metrics",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "college": { "type": "string", "maxLength": 150 },
+        "currentYear": { "type": "string", "maxLength": 50 },
+        "selectedBranch": { "type": "string", "maxLength": 20 },
+        "cgpa": { "type": "number" },
+        "targetLPA": { "type": "number" },
+        "xp": { "type": "number" },
+        "streakDays": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "SkillProgression": {
+      "title": "SkillProgression",
+      "description": "Daily 30-day snapshot of coding, communication, and aptitude scores",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "date": { "type": "string", "maxLength": 20 },
+        "coding": { "type": "number" },
+        "communication": { "type": "number" },
+        "aptitude": { "type": "number" },
+        "day": { "type": "number" }
+      },
+      "required": ["uid", "date", "coding", "communication", "aptitude"]
+    },
+    "StudentBadge": {
+      "title": "StudentBadge",
+      "description": "Achievement tokens awarded to students",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 250 },
+        "category": { "type": "string", "maxLength": 50 },
+        "unlockedAt": { "type": "string" },
+        "icon": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "title", "description", "category"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "User specific deadline alerts and test reminders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["internship_deadline", "test_reminder", "milestone", "system"] },
+        "dueDate": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "linkTab": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message", "type", "isRead"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document indexed by Firebase Auth UID"
+    },
+    "/users/{userId}/progress/{progressId}": {
+      "schema": "SkillProgression",
+      "description": "Skill score historical logs"
+    },
+    "/users/{userId}/badges/{badgeId}": {
+      "schema": "StudentBadge",
+      "description": "Earned badge documents"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "UserNotification",
+      "description": "User specific deadline and mock reminders subcollection"
+    }
+  }
+}
