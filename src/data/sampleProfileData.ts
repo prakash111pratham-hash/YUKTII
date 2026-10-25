@@ -1,4 +1,4 @@
-import { ApplicationRecord, ResumeData, UserProfile } from '../types';
+import { ApplicationRecord, ResumeData, UserProfile, DailyStudyGoal, CareerBadge } from '../types';
 
 export const SAMPLE_STUDENT_PROFILE: UserProfile = {
   id: 'usr-101',
@@ -332,4 +332,97 @@ export function generateInitialPracticeSessions() {
 
   return sessions;
 }
+
+export function createFreshUserProfile(overrides?: Partial<UserProfile>): UserProfile {
+  const name = overrides?.name || 'New Student';
+  const email = overrides?.email || 'student@engineering.edu';
+  return {
+    id: overrides?.id || `usr-${Date.now()}`,
+    name,
+    email,
+    avatar: undefined,
+    phoneNumber: overrides?.phoneNumber,
+    isPhoneVerified: Boolean(overrides?.isPhoneVerified),
+    isEmailVerified: true,
+    authProvider: overrides?.authProvider || 'email',
+    currentYear: overrides?.currentYear || '1st Year',
+    college: overrides?.college || 'Engineering College',
+    city: overrides?.city || 'India',
+    targetLPA: overrides?.targetLPA || 14,
+    selectedBranch: overrides?.selectedBranch || 'CSE',
+    jeeRank: overrides?.jeeRank,
+    cgpa: overrides?.cgpa || 8.0,
+    xp: overrides?.xp ?? 0, // Starts at fresh zero
+    streakDays: overrides?.streakDays ?? 0,
+    badges: [],
+    interests: ['Data Structures', 'Web Systems', 'Algorithms'],
+    careerGoal: overrides?.careerGoal || 'Crack Tier-1 Product Engineering Campus Placement',
+    completedAssessment: false,
+    learningStyle: 'Project-Driven',
+  };
+}
+
+export function createFreshResumeData(user: UserProfile): ResumeData {
+  return {
+    fullName: user.name,
+    email: user.email,
+    phone: user.phoneNumber || '+91 ',
+    location: user.city || 'India',
+    linkedin: '',
+    github: '',
+    portfolioUrl: '',
+    summary: `Aspiring ${user.selectedBranch || 'Computer Science'} engineering student at ${user.college || 'Engineering College'} with focus on scalable software systems, algorithms, and practical development.`,
+    education: [
+      {
+        degree: `B.Tech in ${user.selectedBranch || 'Computer Science & Engineering'}`,
+        institution: user.college || 'Engineering College',
+        year: '2024 - 2028',
+        score: `${user.cgpa || 8.0} CGPA`,
+      },
+    ],
+    skills: [
+      {
+        category: 'Programming Languages',
+        items: ['C++', 'Python', 'Java', 'JavaScript', 'SQL'],
+      },
+      {
+        category: 'Frameworks & Tools',
+        items: ['React', 'Node.js', 'Express', 'Git', 'Linux'],
+      },
+    ],
+    projects: [
+      {
+        title: 'Full-Stack Engineering Portal',
+        techStack: 'React, Node.js, Express, Tailwind CSS',
+        bullets: [
+          'Engineered interactive student preparation dashboard with modular design and zero latency.',
+          'Built responsive interfaces for daily study tracking and cognitive aptitude diagnostics.',
+        ],
+      },
+    ],
+    experience: [],
+    achievements: [
+      'Admitted to Department of Engineering with focus on Software Systems.',
+    ],
+    certifications: [],
+  };
+}
+
+export function createFreshStudyGoal(): DailyStudyGoal {
+  return {
+    targetHours: 3.0,
+    studiedHoursToday: 0.0,
+    streakDays: 0,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+export function createFreshBadges(): CareerBadge[] {
+  return CAREER_BADGES_DATA.map((b) => ({
+    ...b,
+    unlocked: false,
+    unlockedAt: undefined,
+  }));
+}
+
 

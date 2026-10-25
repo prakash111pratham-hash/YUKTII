@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Mail,
   Linkedin,
+  LogIn,
 } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 
 export const Navbar: React.FC = () => {
   const {
+    isAuthenticated,
     user,
     activeTab,
     setActiveTab,
@@ -168,26 +170,35 @@ export const Navbar: React.FC = () => {
             </button>
 
             {/* User Profile & Auth Pill */}
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-orange-200 hover:border-orange-500 shadow-2xs transition-all cursor-pointer group"
-              title="Manage Account, Email & Mobile OTP Verification"
-            >
-              <img
-                src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80'}
-                alt={user.name}
-                className="w-7 h-7 rounded-full object-cover ring-2 ring-orange-500/30 group-hover:ring-orange-500"
-              />
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-bold text-slate-800 hidden sm:inline group-hover:text-orange-600 transition-colors">
-                  {user.name.split(' ')[0]}
-                </span>
-                {user.isPhoneVerified && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mobile Verified" />
-                )}
-              </div>
-            </button>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-orange-200 hover:border-orange-500 shadow-2xs transition-all cursor-pointer group"
+                title="Manage Account, Email & Mobile OTP Verification"
+              >
+                <div className="w-7 h-7 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-orange-500/30 group-hover:ring-orange-500">
+                  {user.name ? user.name.charAt(0) : 'U'}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-slate-800 hidden sm:inline group-hover:text-orange-600 transition-colors">
+                    {user.name.split(' ')[0]}
+                  </span>
+                  {user.isPhoneVerified && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mobile Verified" />
+                  )}
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-sm shadow-orange-600/25 transition-all cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In / Register</span>
+              </button>
+            )}
 
             {/* Mobile Hamburger */}
             <button

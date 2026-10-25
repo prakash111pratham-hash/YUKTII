@@ -31,7 +31,17 @@ import {
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
-  const { user, scores, setActiveTab, setSelectedBranchForModal, setShowUniqueFeaturesModal, language } = useApp();
+  const {
+    isAuthenticated,
+    user,
+    scores,
+    resumeData,
+    setActiveTab,
+    setSelectedBranchForModal,
+    setShowUniqueFeaturesModal,
+    setIsAuthModalOpen,
+    language,
+  } = useApp();
 
   const readiness = calculatePlacementReadiness(user);
 
@@ -90,40 +100,96 @@ export const DashboardView: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                 <span>{user.currentYear} • {user.college || 'Engineering College'}</span>
               </div>
-              <a
-                href="https://github.com/prakash111pratham-hash"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
-              >
-                <span>GitHub</span>
-              </a>
-              <a
-                href="https://www.linkedin.com/in/pratham-prakash-3a8033362/?"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
-              >
-                <span>LinkedIn</span>
-              </a>
+              {user.name === 'Pratham' ? (
+                <>
+                  <a
+                    href="https://github.com/prakash111pratham-hash"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
+                  >
+                    <span>GitHub</span>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/pratham-prakash-3a8033362/?"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
+                  >
+                    <span>LinkedIn</span>
+                  </a>
+                </>
+              ) : resumeData?.github || resumeData?.linkedin ? (
+                <>
+                  {resumeData.github && (
+                    <a
+                      href={resumeData.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
+                    >
+                      <span>GitHub</span>
+                    </a>
+                  )}
+                  {resumeData.linkedin && (
+                    <a
+                      href={resumeData.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
+                    >
+                      <span>LinkedIn</span>
+                    </a>
+                  )}
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-orange-200 text-xs font-medium border border-white/15">
+                  {user.selectedBranch || 'CSE'} Engineering
+                </span>
+              )}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Welcome back, <span className="text-orange-400">{user.name}</span>!
-            </h1>
-            <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
-              Targeting: <strong className="text-white font-semibold">{user.careerGoal}</strong>. You are currently on track with a{' '}
-              <span className="text-emerald-400 font-bold">{readiness.overallScore}%</span> Placement Readiness Index.
-            </p>
+
+            {isAuthenticated ? (
+              <>
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                  Welcome back, <span className="text-orange-400">{user.name}</span>!
+                </h1>
+                <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
+                  Targeting: <strong className="text-white font-semibold">{user.careerGoal}</strong>. You are currently on track with a{' '}
+                  <span className="text-emerald-400 font-bold">{readiness.overallScore}%</span> Placement Readiness Index.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                  Welcome to <span className="text-orange-400">YUKTI</span>!
+                </h1>
+                <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
+                  Sign in or create a fresh student account to start your personalized 4-year journey from fresh zero with custom roadmaps, study goals, and ATS resumes.
+                </p>
+              </>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 mt-5">
-              <button
-                type="button"
-                onClick={() => setActiveTab('practice')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer"
-              >
-                <span>Continue Today’s Practice</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('practice')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer"
+                >
+                  <span>Continue Today’s Practice</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer"
+                >
+                  <span>Sign In or Register (Start Fresh)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
 
               <button
                 type="button"
