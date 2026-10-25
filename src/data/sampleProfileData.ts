@@ -124,3 +124,212 @@ export const SAMPLE_APPLICATIONS: ApplicationRecord[] = [
     deadline: '2026-12-10',
   },
 ];
+
+export const SAMPLE_STUDY_GOAL = {
+  targetHours: 3.5,
+  studiedHoursToday: 2.5,
+  streakDays: 14,
+  lastUpdated: new Date().toISOString(),
+};
+
+export const LEVEL_TIERS = [
+  {
+    level: 1,
+    title: 'Engineering Aspirant',
+    badgeName: 'First Spark',
+    minXp: 0,
+    maxXp: 500,
+    perks: ['Unlock Stage 1 Diagnostic Tests', 'Basic Resume Template'],
+  },
+  {
+    level: 2,
+    title: 'Code Craftsman',
+    badgeName: 'Algorithm Explorer',
+    minXp: 500,
+    maxXp: 1200,
+    perks: ['Unlock 30+ Coding Challenges', 'Speech Cadence Analyzer'],
+  },
+  {
+    level: 3,
+    title: 'Algorithmic Contender',
+    badgeName: 'Assessment Ace',
+    minXp: 1200,
+    maxXp: 2200,
+    perks: ['TCS / Infosys Mock Series', 'AI Resume Bullet Optimizer'],
+  },
+  {
+    level: 4,
+    title: 'System Architect',
+    badgeName: 'Full-Stack Pioneer',
+    minXp: 2200,
+    maxXp: 3500,
+    perks: ['System Design High-Yield Notes', 'Direct Referral Badge'],
+  },
+  {
+    level: 5,
+    title: 'Placement Contender',
+    badgeName: 'Internship Conqueror',
+    minXp: 3500,
+    maxXp: 5000,
+    perks: ['AI Mock Technical Interviewer', 'Priority TPO Shortlisting'],
+  },
+  {
+    level: 6,
+    title: 'Day-1 Dream Offer Elite',
+    badgeName: 'Day-1 Placement Star',
+    minXp: 5000,
+    maxXp: 10000,
+    perks: ['Executive Mock Rounds', 'Top Tier Product Recruiter Pass'],
+  },
+];
+
+export const CAREER_BADGES_DATA = [
+  {
+    id: 'b-assess-ace',
+    title: 'Assessment Ace',
+    description: 'Scored 85%+ in Stage 1 Cognitive & Technical Diagnostic',
+    category: 'Milestone' as const,
+    icon: 'Target',
+    unlocked: true,
+    unlockedAt: 'Aug 2025',
+    xpValue: 150,
+  },
+  {
+    id: 'b-dsa-warrior',
+    title: 'DSA 100 Solved',
+    description: 'Completed 100+ Data Structures & Algorithms challenges',
+    category: 'Skill' as const,
+    icon: 'Cpu',
+    unlocked: true,
+    unlockedAt: 'Oct 2025',
+    xpValue: 250,
+  },
+  {
+    id: 'b-streak-14',
+    title: '14-Day Study Streak',
+    description: 'Maintained active engineering preparation for 14 continuous days',
+    category: 'Habit' as const,
+    icon: 'Flame',
+    unlocked: true,
+    unlockedAt: 'Oct 2026',
+    xpValue: 200,
+  },
+  {
+    id: 'b-ats-ready',
+    title: 'ATS Resume Certified',
+    description: 'Achieved 88%+ recruiter match score with Google XYZ bullet points',
+    category: 'Milestone' as const,
+    icon: 'FileCheck',
+    unlocked: true,
+    unlockedAt: 'Oct 2026',
+    xpValue: 200,
+  },
+  {
+    id: 'b-intern-secured',
+    title: 'Internship Secured',
+    description: 'Cleared technical interviews and landed summer industrial internship',
+    category: 'Elite' as const,
+    icon: 'Briefcase',
+    unlocked: true,
+    unlockedAt: 'Sep 2026',
+    xpValue: 350,
+  },
+  {
+    id: 'b-sys-design',
+    title: 'Distributed Thinker',
+    description: 'Completed System Design simulations including microservices and caching',
+    category: 'Skill' as const,
+    icon: 'Zap',
+    unlocked: false,
+    xpValue: 300,
+  },
+  {
+    id: 'b-gd-fluent',
+    title: 'Campus GD Orator',
+    description: 'Achieved 85%+ fluency and 140 WPM speech delivery without filler words',
+    category: 'Skill' as const,
+    icon: 'Award',
+    unlocked: false,
+    xpValue: 200,
+  },
+  {
+    id: 'b-day1-offer',
+    title: 'Day-1 Dream Offer',
+    description: 'Secured Tier-1 product engineering campus offer (₹18+ LPA)',
+    category: 'Elite' as const,
+    icon: 'Sparkles',
+    unlocked: false,
+    xpValue: 500,
+  },
+];
+
+// Helper to generate realistic historical practice sessions for past 12 weeks
+export function generateInitialPracticeSessions() {
+  const sessions = [];
+  const domains = [
+    { domain: 'dsa' as const, label: 'Data Structures & Algorithms', avgMinutes: 60, questions: 3 },
+    { domain: 'system_design' as const, label: 'System Design & Architecture', avgMinutes: 45, questions: 1 },
+    { domain: 'core_cs' as const, label: 'Core CS (OS/DBMS/CN)', avgMinutes: 40, questions: 4 },
+    { domain: 'aptitude' as const, label: 'Quant & Logical Aptitude', avgMinutes: 35, questions: 15 },
+    { domain: 'gd_verbal' as const, label: 'Verbal & Mock GD Speech', avgMinutes: 30, questions: 2 },
+  ];
+
+  const now = new Date();
+  // 84 days (12 weeks)
+  for (let i = 84; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayOfWeek = d.getDay(); // 0 is Sun
+
+    // Higher frequency on weekdays, occasional rest day on Sun
+    const shouldHaveSession = (i % 7 !== 0) || (i % 3 === 0);
+    if (!shouldHaveSession) continue;
+
+    // Pick 1 or 2 domains practiced that day
+    const sessionCount = (i % 4 === 0) ? 2 : 1;
+    for (let s = 0; s < sessionCount; s++) {
+      const domainIndex = (i * 3 + s * 2 + dayOfWeek) % domains.length;
+      const dom = domains[domainIndex];
+      const intensity = ((i + s) % 4 + 1) as 1 | 2 | 3 | 4;
+      const minutes = intensity * 25 + (i % 15);
+
+      sessions.push({
+        id: `sess-${dateStr}-${dom.domain}-${s}`,
+        date: dateStr,
+        domain: dom.domain,
+        domainLabel: dom.label,
+        durationMinutes: minutes,
+        intensity,
+        questionsSolved: Math.max(1, Math.round(dom.questions * (intensity / 2))),
+        notes: `Focus practice on ${dom.label} fundamentals`,
+      });
+    }
+  }
+
+  // Ensure today has recent sessions
+  const todayStr = now.toISOString().slice(0, 10);
+  sessions.push({
+    id: `sess-${todayStr}-dsa-today`,
+    date: todayStr,
+    domain: 'dsa' as const,
+    domainLabel: 'Data Structures & Algorithms',
+    durationMinutes: 90,
+    intensity: 4 as const,
+    questionsSolved: 5,
+    notes: 'Binary Trees & Lowest Common Ancestor LeetCode Hard',
+  });
+  sessions.push({
+    id: `sess-${todayStr}-system-design-today`,
+    date: todayStr,
+    domain: 'system_design' as const,
+    domainLabel: 'System Design & Architecture',
+    durationMinutes: 60,
+    intensity: 3 as const,
+    questionsSolved: 2,
+    notes: 'Distributed Caching & Redis LRU Eviction Strategies',
+  });
+
+  return sessions;
+}
+

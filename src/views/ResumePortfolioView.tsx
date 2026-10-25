@@ -18,7 +18,10 @@ import {
   Trash2,
   Globe,
   Award,
+  FileDown,
+  Download,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export const ResumePortfolioView: React.FC = () => {
   const { resumeData, setResumeData, user, incrementXp } = useApp();
@@ -27,11 +30,124 @@ export const ResumePortfolioView: React.FC = () => {
   const [optimizingIndex, setOptimizingIndex] = useState<{ pIdx: number; bIdx: number } | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   const atsReport = calculateResumeAtsScore(resumeData);
 
   const handlePrint = () => {
-    window.print();
+    setActiveTabSub('resume');
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
+  const handleExportPdf = () => {
+    setActiveTabSub('resume');
+    confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+    incrementXp(50, 'Exported ATS Resume as PDF');
+    setExportNotice('Opening system print preview. Choose "Save as PDF" to save offline.');
+    setTimeout(() => {
+      window.print();
+    }, 150);
+    setTimeout(() => setExportNotice(null), 5000);
+  };
+
+  const handleExportOfflineDocument = () => {
+    try {
+      const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${resumeData.fullName} - ATS Resume</title>
+  <style>
+    @page { size: A4; margin: 15mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #1e293b; line-height: 1.45; font-size: 11pt; margin: 0; padding: 20px; }
+    h1 { font-size: 22pt; margin: 0 0 6px 0; text-transform: uppercase; text-align: center; color: #0f172a; letter-spacing: 0.5px; }
+    .contacts { text-align: center; font-size: 9.5pt; color: #475569; margin-bottom: 12px; }
+    .contacts a { color: #ea580c; text-decoration: none; }
+    h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: 1px; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 2px; margin: 14px 0 6px 0; }
+    .section { margin-bottom: 10px; }
+    .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 10.5pt; }
+    .item-sub { display: flex; justify-content: space-between; font-size: 9.5pt; color: #475569; margin-bottom: 4px; }
+    ul { margin: 4px 0 8px 18px; padding: 0; }
+    li { margin-bottom: 3px; font-size: 10pt; }
+    .skills-row { margin-bottom: 4px; font-size: 10pt; }
+    .badge { display: inline-block; background: #fff7ed; border: 1px solid #fdba74; padding: 2px 6px; border-radius: 4px; font-size: 9pt; color: #9a3412; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>${resumeData.fullName}</h1>
+  <div class="contacts">
+    ${resumeData.email} • ${resumeData.phone} • ${resumeData.location}<br>
+    <a href="${resumeData.linkedin}">LinkedIn: ${resumeData.linkedin}</a> •
+    <a href="${resumeData.github}">GitHub: ${resumeData.github}</a>
+  </div>
+
+  <h2>Professional Profile</h2>
+  <div class="section"><p style="margin: 0; font-size: 10pt;">${resumeData.summary}</p></div>
+
+  <h2>Education</h2>
+  <div class="section">
+    ${resumeData.education.map((e) => `
+      <div class="item-header"><span>${e.degree}</span><span>${e.score}</span></div>
+      <div class="item-sub"><span>${e.institution}</span><span>${e.year}</span></div>
+    `).join('')}
+  </div>
+
+  <h2>Technical Skills</h2>
+  <div class="section">
+    ${resumeData.skills.map((s) => `
+      <div class="skills-row"><strong>${s.category}:</strong> ${s.items.join(', ')}</div>
+    `).join('')}
+  </div>
+
+  <h2>Projects</h2>
+  <div class="section">
+    ${resumeData.projects.map((p) => `
+      <div class="item-header"><span>${p.title} | ${p.techStack}</span><span>${p.githubLink || p.liveLink || ''}</span></div>
+      <ul>
+        ${p.bullets.map((b) => `<li>${b}</li>`).join('')}
+      </ul>
+    `).join('')}
+  </div>
+
+  <h2>Experience</h2>
+  <div class="section">
+    ${(resumeData.experience || []).map((exp) => `
+      <div class="item-header"><span>${exp.role} - ${exp.company}</span><span>${exp.period}</span></div>
+      <ul>
+        ${exp.bullets.map((b) => `<li>${b}</li>`).join('')}
+      </ul>
+    `).join('')}
+  </div>
+
+  <h2>Key Achievements & Certifications</h2>
+  <div class="section">
+    <ul>
+      ${resumeData.achievements.map((a) => `<li>${a}</li>`).join('')}
+      ${resumeData.certifications.map((c) => `<li>${c}</li>`).join('')}
+    </ul>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${resumeData.fullName.toLowerCase().replace(/\s+/g, '_')}_ats_resume.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      incrementXp(50, 'Exported Offline Resume Document');
+      confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
+      setExportNotice('Offline standalone resume file downloaded! Open in any browser to view or print offline.');
+      setTimeout(() => setExportNotice(null), 5000);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleOptimizeBullet = async (pIdx: number, bIdx: number, currentBullet: string) => {
@@ -115,15 +231,44 @@ export const ResumePortfolioView: React.FC = () => {
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print / PDF Export</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Export ATS PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportOfflineDocument}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900 text-xs font-bold transition-colors cursor-pointer"
+              title="Download standalone offline HTML/ATS file"
+            >
+              <Download className="w-3.5 h-3.5 text-orange-600" />
+              <span className="hidden sm:inline">Offline Doc</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              title="Direct browser print"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Print</span>
+            </button>
+          </div>
         </div>
+
+        {exportNotice && (
+          <div className="p-3.5 rounded-xl bg-orange-50 border border-orange-200 text-xs font-bold text-orange-950 flex items-center gap-2 print:hidden animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{exportNotice}</span>
+          </div>
+        )}
       </div>
 
       {/* 1. RESUME BUILDER & LIVE ATS SCORE */}
@@ -407,15 +552,15 @@ export const ResumePortfolioView: React.FC = () => {
           </div>
 
           {/* Badges & Verifications */}
-          <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-3">
-            <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-indigo-600" /> CareerPath AI Verified Credentials
+          <div className="p-6 rounded-2xl bg-orange-50/70 border border-orange-200 space-y-3">
+            <h3 className="text-sm font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Award className="w-4 h-4 text-orange-600" /> YUKTI Verified Credentials
             </h3>
             <div className="flex flex-wrap gap-2 pt-1">
               {user.badges.map((b, i) => (
                 <span
                   key={i}
-                  className="px-3 py-1.5 rounded-xl bg-white text-indigo-900 border border-indigo-200 text-xs font-bold shadow-xs flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-white text-orange-950 border border-orange-200 text-xs font-bold shadow-xs flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3 h-3 text-amber-500" />
                   {b}

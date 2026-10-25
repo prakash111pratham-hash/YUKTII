@@ -13,6 +13,7 @@ import { InternshipsView } from './views/InternshipsView';
 import { TpoAdminView } from './views/TpoAdminView';
 import { WorkspaceHubView } from './views/WorkspaceHubView';
 import { AiChatbot } from './components/AiChatbot';
+import { AuthModal } from './components/AuthModal';
 import { Compass, Sparkles, Heart } from 'lucide-react';
 
 function AppContent() {
@@ -58,6 +59,9 @@ function AppContent() {
 
       {/* Top 5 Unique Features Modal */}
       <TopUniqueFeaturesModal />
+
+      {/* Email & Phone OTP Authentication Modal */}
+      <AuthModal />
 
       {/* Floating Gemini AI Chatbot with Search Grounding */}
       <AiChatbot />

@@ -64,6 +64,38 @@
         "linkTab": { "type": "string" }
       },
       "required": ["id", "userId", "title", "message", "type", "isRead"]
+    },
+    "DailyStudyGoal": {
+      "title": "DailyStudyGoal",
+      "description": "Student daily study hour target and tracked progress",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "targetHours": { "type": "number" },
+        "studiedHours": { "type": "number" },
+        "date": { "type": "string", "maxLength": 30 },
+        "streakDays": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "targetHours", "studiedHours", "date"]
+    },
+    "PracticeLog": {
+      "title": "PracticeLog",
+      "description": "Logged practice session across engineering domains for the skill heatmap",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "domain": { "type": "string", "enum": ["dsa", "system_design", "core_cs", "aptitude", "gd_verbal"] },
+        "durationMinutes": { "type": "number" },
+        "intensity": { "type": "number" },
+        "questionsSolved": { "type": "number" },
+        "date": { "type": "string", "maxLength": 30 },
+        "notes": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "domain", "durationMinutes", "intensity", "date"]
     }
   },
   "firestore": {
@@ -82,6 +114,14 @@
     "/users/{userId}/notifications/{notificationId}": {
       "schema": "UserNotification",
       "description": "User specific deadline and mock reminders subcollection"
+    },
+    "/users/{userId}/studyGoals/{goalId}": {
+      "schema": "DailyStudyGoal",
+      "description": "User daily study goals and progress"
+    },
+    "/users/{userId}/practiceLogs/{logId}": {
+      "schema": "PracticeLog",
+      "description": "Practice sessions for skill progression heatmap"
     }
   }
 }

@@ -8,6 +8,9 @@ import { SkillProgressionChart } from '../components/SkillProgressionChart';
 import { Badges } from '../components/Badges';
 import { ThreeCareerScene } from '../components/ThreeCareerScene';
 import { FourYearRoadmap } from '../components/FourYearRoadmap';
+import { SkillHeatmap } from '../components/SkillHeatmap';
+import { DailyStudyGoal } from '../components/DailyStudyGoal';
+import { LevelProgression } from '../components/LevelProgression';
 import {
   Sparkles,
   ArrowRight,
@@ -173,8 +176,17 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Level Progression & Milestone XP System */}
+      <LevelProgression />
+
       {/* Interactive 4-Year Journey Roadmap (Milestones: Assessment Passed, Internship Secured, etc.) */}
       <FourYearRoadmap />
+
+      {/* Daily Study Goal Tracker Component */}
+      <DailyStudyGoal />
+
+      {/* Multi-Domain Skill Progression Heatmap */}
+      <SkillHeatmap />
 
       {/* AI Next Best Steps & Radar Profile Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

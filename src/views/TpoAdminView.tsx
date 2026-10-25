@@ -96,7 +96,7 @@ export const TpoAdminView: React.FC = () => {
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Eligible Batch Size</span>
               <div className="text-2xl font-extrabold text-slate-900">700 Students</div>
-              <span className="text-xs text-emerald-600 font-semibold">96% Registered on CareerPath AI</span>
+              <span className="text-xs text-emerald-600 font-semibold">96% Registered on YUKTI</span>
             </div>
 
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-1">

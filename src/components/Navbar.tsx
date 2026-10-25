@@ -28,6 +28,7 @@ export const Navbar: React.FC = () => {
     language,
     setLanguage,
     setShowUniqueFeaturesModal,
+    setIsAuthModalOpen,
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,9 +72,6 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <span className="text-xl font-black tracking-tight text-slate-900 group-hover:text-orange-600 transition-colors">
                     YUKTI
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-800 tracking-wider">
-                    युक्ति
                   </span>
                 </div>
                 <span className="block text-[9px] font-bold text-orange-700 tracking-wider uppercase">
@@ -169,21 +167,26 @@ export const Navbar: React.FC = () => {
               <span>{language === 'en' ? 'HI (हिन्दी)' : 'EN (English)'}</span>
             </button>
 
-            {/* User Profile Pill */}
+            {/* User Profile & Auth Pill */}
             <button
               type="button"
-              onClick={() => handleNavClick('resume')}
-              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-orange-200 hover:border-orange-400 transition-colors cursor-pointer"
-              title="View Student Profile"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-white border border-orange-200 hover:border-orange-500 shadow-2xs transition-all cursor-pointer group"
+              title="Manage Account, Email & Mobile OTP Verification"
             >
               <img
                 src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80'}
                 alt={user.name}
-                className="w-7 h-7 rounded-full object-cover ring-2 ring-orange-500/30"
+                className="w-7 h-7 rounded-full object-cover ring-2 ring-orange-500/30 group-hover:ring-orange-500"
               />
-              <span className="text-xs font-bold text-slate-800 hidden sm:inline">
-                {user.name.split(' ')[0]}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-slate-800 hidden sm:inline group-hover:text-orange-600 transition-colors">
+                  {user.name.split(' ')[0]}
+                </span>
+                {user.isPhoneVerified && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mobile Verified" />
+                )}
+              </div>
             </button>
 
             {/* Mobile Hamburger */}

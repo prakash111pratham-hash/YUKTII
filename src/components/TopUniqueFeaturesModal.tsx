@@ -26,7 +26,7 @@ export const TopUniqueFeaturesModal: React.FC = () => {
       icon: Cpu,
       tagline: 'Authentic TCS NQT, Infosys SpringBoard, Product MAANG & Core Mocks',
       description:
-        'Standard mock tests offer generic questions. CareerPath AI faithfully replicates real Indian campus test patterns: TCS NQT with Foundation & Advanced Quantitative sections and strict sectional timers; Infosys with cryptarithmetic and negative marking; Product MAANG with O(N) constraints; and Core Engineering (L&T / Tata Motors) with IS code standards.',
+        'Standard mock tests offer generic questions. YUKTI faithfully replicates real Indian campus test patterns: TCS NQT with Foundation & Advanced Quantitative sections and strict sectional timers; Infosys with cryptarithmetic and negative marking; Product MAANG with O(N) constraints; and Core Engineering (L&T / Tata Motors) with IS code standards.',
       targetTab: 'practice',
       actionLabel: 'Launch Placement Mock Arena',
     },
@@ -59,7 +59,7 @@ export const TopUniqueFeaturesModal: React.FC = () => {
       icon: Zap,
       tagline: 'Don’t just see what is missing — bridge it in 7 focused sprint days',
       description:
-        'When you browse any of our 25+ Indian tech & core internships (Zoho, Swiggy, Tata Motors, Qualcomm, Ather), CareerPath AI cross-references the job requirements against your known skills. It calculates a precise match % and automatically synthesizes a day-by-day 7-Day Sprint Roadmap with free learning resources, mini-projects, and interview tips to become qualified.',
+        'When you browse any of our 25+ Indian tech & core internships (Zoho, Swiggy, Tata Motors, Qualcomm, Ather), YUKTI cross-references the job requirements against your known skills. It calculates a precise match % and automatically synthesizes a day-by-day 7-Day Sprint Roadmap with free learning resources, mini-projects, and interview tips to become qualified.',
       targetTab: 'internships',
       actionLabel: 'Explore Internships & Gap Analyzer',
     },

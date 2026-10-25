@@ -7,6 +7,10 @@ export interface UserProfile {
   name: string;
   email: string;
   avatar?: string;
+  phoneNumber?: string;
+  isPhoneVerified?: boolean;
+  isEmailVerified?: boolean;
+  authProvider?: 'google' | 'email' | 'phone';
   currentYear: UserYear;
   college?: string;
   city?: string;
@@ -21,6 +25,46 @@ export interface UserProfile {
   careerGoal?: string;
   completedAssessment: boolean;
   learningStyle?: 'Visual / Practical' | 'Analytical / Theoretical' | 'Project-Driven' | 'Collaborative';
+}
+
+export type EngineeringDomain = 'dsa' | 'system_design' | 'core_cs' | 'aptitude' | 'gd_verbal';
+
+export interface PracticeSessionRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  domain: EngineeringDomain;
+  domainLabel: string;
+  durationMinutes: number;
+  intensity: 1 | 2 | 3 | 4;
+  questionsSolved: number;
+  notes?: string;
+}
+
+export interface DailyStudyGoal {
+  targetHours: number;
+  studiedHoursToday: number;
+  streakDays: number;
+  lastUpdated: string;
+}
+
+export interface CareerBadge {
+  id: string;
+  title: string;
+  description: string;
+  category: 'Milestone' | 'Skill' | 'Habit' | 'Elite';
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  xpValue: number;
+}
+
+export interface LevelTier {
+  level: number;
+  title: string;
+  badgeName: string;
+  minXp: number;
+  maxXp: number;
+  perks: string[];
 }
 
 export interface RIASECScores {

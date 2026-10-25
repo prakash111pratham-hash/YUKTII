@@ -32,7 +32,7 @@ export interface Milestone {
 }
 
 export const FourYearRoadmap: React.FC = () => {
-  const { user, scores, applications, setActiveTab, incrementXp } = useApp();
+  const { user, scores, applications, setActiveTab, incrementXp, unlockBadge } = useApp();
 
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState<number | 'all'>('all');
@@ -200,6 +200,14 @@ export const FourYearRoadmap: React.FC = () => {
           if (nextStatus === 'completed') {
             confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
             incrementXp(m.xpReward, `Completed milestone: ${m.title}`);
+
+            // Automatically reward unique career badges
+            if (m.id === 'm-internship-sec') unlockBadge('b-intern-secured');
+            if (m.id === 'm-assess-passed') unlockBadge('b-assess-ace');
+            if (m.id === 'm-dsa-100') unlockBadge('b-dsa-warrior');
+            if (m.id === 'm-ats-resume') unlockBadge('b-ats-ready');
+            if (m.id === 'm-placement-offer') unlockBadge('b-day1-offer');
+            if (m.id === 'm-gd-speech') unlockBadge('b-gd-fluent');
           }
           return {
             ...m,
