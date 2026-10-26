@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { googleSignIn } from '../lib/firebase';
 import {
   X,
   Mail,
@@ -13,10 +14,10 @@ import {
   Smartphone,
   LogOut,
   User,
-  GraduationCap,
-  BookOpen,
   Building,
   RefreshCw,
+  KeyRound,
+  Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BranchCode, UserYear } from '../types';
@@ -33,19 +34,26 @@ export const AuthModal: React.FC = () => {
     incrementXp,
   } = useApp();
 
-  const [authTab, setAuthTab] = useState<'email' | 'phone'>('email');
-  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
+  // Three distinct tabs: signin | signup | phone
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup' | 'phone'>('signin');
 
-  // Registration Form State
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [college, setCollege] = useState('National Institute of Technology (NIT)');
-  const [branch, setBranch] = useState<BranchCode>('CSE');
-  const [currentYear, setCurrentYear] = useState<UserYear>('1st Year');
+  // Sign In Form State
+  const [signInEmail, setSignInEmail] = useState('sreya0913@gmail.com');
+  const [signInPassword, setSignInPassword] = useState('Password@123');
 
-  // Phone OTP Form State
-  const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber ? user.phoneNumber.replace(/\D/g, '').slice(-10) : '');
+  // Registration Form State (Start from Zero)
+  const [regName, setRegName] = useState('Sreya Sengupta');
+  const [regEmail, setRegEmail] = useState('sreya0913@gmail.com');
+  const [regPassword, setRegPassword] = useState('Password@123');
+  const [regPhone, setRegPhone] = useState('9876543210');
+  const [regCollege, setRegCollege] = useState('National Institute of Technology (NIT)');
+  const [regBranch, setRegBranch] = useState<BranchCode>('CSE');
+  const [regYear, setRegYear] = useState<UserYear>('1st Year');
+
+  // Phone OTP State
+  const [phoneNumber, setPhoneNumber] = useState(
+    user?.phoneNumber ? user.phoneNumber.replace(/\D/g, '').slice(-10) : '9876543210'
+  );
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [serverOtpHint, setServerOtpHint] = useState<string | null>(null);
@@ -57,18 +65,20 @@ export const AuthModal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Auto-fill fields if user is currently authenticated
+  // Sync active user details
   useEffect(() => {
-    if (user?.email) {
-      setEmail(user.email);
-      setName(user.name);
-      if (user.college) setCollege(user.college);
-      if (user.selectedBranch) setBranch(user.selectedBranch);
-      if (user.currentYear) setCurrentYear(user.currentYear);
+    if (user?.email && user.email !== 'prakash111pratham@gmail.com') {
+      setSignInEmail(user.email);
+      setRegEmail(user.email);
+      if (user.name) setRegName(user.name);
+      if (user.college) setRegCollege(user.college);
+      if (user.selectedBranch) setRegBranch(user.selectedBranch);
+      if (user.currentYear) setRegYear(user.currentYear);
+      if (user.phoneNumber) setPhoneNumber(user.phoneNumber.replace(/\D/g, '').slice(-10));
     }
   }, [user]);
 
-  // Resend Countdown Timer
+  // Resend countdown timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (otpSent && resendTimer > 0) {
@@ -81,45 +91,30 @@ export const AuthModal: React.FC = () => {
 
   if (!isAuthModalOpen) return null;
 
-  // Handle Email Authentication (Sign In & Register)
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  // 1. Handle Email Sign In
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
     try {
-      const endpoint = emailMode === 'signup' ? '/api/auth/register' : '/api/auth/login';
-      const payload =
-        emailMode === 'signup'
-          ? {
-              name,
-              email,
-              password,
-              phone: phoneNumber,
-              college,
-              branch,
-              currentYear,
-            }
-          : {
-              email,
-              password,
-            };
-
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          email: signInEmail,
+          password: signInPassword,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Authentication failed. Please verify your details.');
+        throw new Error(data.error || 'Sign in failed. Please check your credentials.');
       }
 
-      // Success: Log in and initialize profile data
-      loginUser(data.user, data.isNewAccount);
-      confetti({ particleCount: 65, spread: 60, origin: { y: 0.6 } });
+      loginUser(data.user, Boolean(data.isNewAccount));
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
 
       if (data.isNewAccount) {
         setSuccessMsg(`Welcome, ${data.user.name}! Your account has been initialized fresh from zero.`);
@@ -130,15 +125,105 @@ export const AuthModal: React.FC = () => {
       setTimeout(() => {
         setIsAuthModalOpen(false);
         setSuccessMsg(null);
-      }, 1400);
+      }, 1200);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication error. Please check your network connection.');
+      setErrorMsg(err.message || 'Network error during sign in.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Real Mobile OTP Request
+  // 2. Handle New Account Registration (Starts Fresh from Zero)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: regName,
+          email: regEmail,
+          password: regPassword,
+          phone: regPhone,
+          college: regCollege,
+          branch: regBranch,
+          currentYear: regYear,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Registration failed. Please try a different email.');
+      }
+
+      // Initialize fresh from zero
+      loginUser(data.user, true);
+      confetti({ particleCount: 85, spread: 70, origin: { y: 0.6 } });
+      setSuccessMsg(`Welcome, ${data.user.name}! Your journey has been created fresh from zero.`);
+
+      setTimeout(() => {
+        setIsAuthModalOpen(false);
+        setSuccessMsg(null);
+      }, 1200);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Registration error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Handle Google 1-Click Sign-In
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await googleSignIn(false);
+      if (!res) {
+        // User closed or dismissed the popup without signing in
+        return;
+      }
+      if (res?.user) {
+        const derivedName = res.user.displayName || res.user.email?.split('@')[0] || 'Student';
+        loginUser(
+          {
+            id: res.user.uid,
+            name: derivedName,
+            email: res.user.email || '',
+            avatar: res.user.photoURL || undefined,
+            isEmailVerified: res.user.emailVerified,
+            isPhoneVerified: false,
+            xp: 0,
+            streakDays: 0,
+          },
+          false
+        );
+        confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
+        setSuccessMsg(`Welcome, ${derivedName}! Signed in via Google.`);
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          setSuccessMsg(null);
+        }, 1200);
+      }
+    } catch (err: any) {
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        String(err?.message || '').includes('popup-closed-by-user')
+      ) {
+        return;
+      }
+      setErrorMsg(err.message || 'Google sign in could not be completed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4. Handle Real Mobile OTP Dispatch
   const handleSendOtp = async () => {
     const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length < 10) {
@@ -159,13 +244,13 @@ export const AuthModal: React.FC = () => {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to dispatch OTP. Please check your number.');
+        throw new Error(data.error || 'Failed to dispatch OTP.');
       }
 
       setOtpSent(true);
       setResendTimer(45);
       setServerOtpHint(data.otpCode);
-      setSuccessMsg(`📩 Real OTP sent to +91 ${cleanPhone}! Code: ${data.otpCode}`);
+      setSuccessMsg(`📩 Real 6-digit OTP dispatched to +91 ${cleanPhone}!`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to send OTP.');
     } finally {
@@ -173,7 +258,7 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Handle Single Digit OTP Input
+  // 5. Handle OTP Input Typing & Auto-Focus
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
     const newCode = [...otpCode];
@@ -191,11 +276,19 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Verify Real Mobile OTP Code
+  // Auto-fill OTP from Server Hint
+  const handleAutoFillOtp = () => {
+    if (!serverOtpHint || serverOtpHint.length !== 6) return;
+    const digits = serverOtpHint.split('');
+    setOtpCode(digits);
+    otpInputsRef.current[5]?.focus();
+  };
+
+  // 6. Handle OTP Code Verification
   const handleVerifyOtp = async () => {
     const entered = otpCode.join('');
     if (entered.length < 6) {
-      setErrorMsg('Please enter the complete 6-digit OTP code.');
+      setErrorMsg('Please enter the full 6-digit OTP verification code.');
       return;
     }
 
@@ -208,7 +301,11 @@ export const AuthModal: React.FC = () => {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, otp: entered }),
+        body: JSON.stringify({
+          phone: cleanPhone,
+          otp: entered,
+          email: user?.email,
+        }),
       });
 
       const data = await res.json();
@@ -216,20 +313,20 @@ export const AuthModal: React.FC = () => {
         throw new Error(data.error || 'Incorrect OTP code.');
       }
 
-      // Update state with verified phone number
+      // Update user state and award XP
       updateUser({
         phoneNumber: data.phone,
         isPhoneVerified: true,
       });
 
       incrementXp(100, 'Real Mobile OTP Verified');
-      confetti({ particleCount: 75, spread: 60, origin: { y: 0.6 } });
-      setSuccessMsg(`Mobile number ${data.phone} verified successfully! +100 XP Earned`);
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      setSuccessMsg(`🎉 Mobile number ${data.phone} verified! +100 XP Earned`);
 
       setTimeout(() => {
         setIsAuthModalOpen(false);
         setSuccessMsg(null);
-      }, 1500);
+      }, 1400);
     } catch (err: any) {
       setErrorMsg(err.message || 'OTP verification failed.');
     } finally {
@@ -237,37 +334,22 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Sign Out Process
+  // 7. Handle Sign Out Process
   const handleSignOut = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       await logoutUser();
-      setSuccessMsg('You have been signed out. Active profile reset to clean state.');
+      setSuccessMsg('You have been signed out successfully. Session reset to clean zero.');
       setTimeout(() => {
         setIsAuthModalOpen(false);
         setSuccessMsg(null);
       }, 1000);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error signing out.');
     } finally {
       setLoading(false);
     }
-  };
-
-  // Quick Switch to Demo Pratham Account
-  const handleLoadPrathamDemo = () => {
-    loginUser(
-      {
-        name: 'Pratham',
-        email: 'prakash111pratham@gmail.com',
-      },
-      false
-    );
-    setSuccessMsg('Loaded Pratham (NIT Surathkal 3rd Year) sample portfolio!');
-    setTimeout(() => {
-      setIsAuthModalOpen(false);
-      setSuccessMsg(null);
-    }, 1000);
   };
 
   return (
@@ -290,13 +372,13 @@ export const AuthModal: React.FC = () => {
           <div>
             <h3 className="text-xl font-black text-slate-900 tracking-tight">YUKTI Account</h3>
             <p className="text-xs text-slate-500">
-              Email Authentication & Real Mobile OTP Verification
+              Cloud SQL & Firebase Authenticated Student Hub
             </p>
           </div>
         </div>
 
-        {/* Account Status / Sign Out Card */}
-        {isAuthenticated ? (
+        {/* Active Account Status Banner */}
+        {isAuthenticated && user?.email ? (
           <div className="mb-5 p-4 rounded-2xl bg-orange-50/80 border border-orange-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
@@ -311,7 +393,7 @@ export const AuthModal: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-slate-600 block">{user.email || 'No email attached'}</span>
+                <span className="text-xs text-slate-600 block">{user.email}</span>
                 <span className="text-[11px] text-orange-800 font-semibold block">
                   {user.currentYear} • {user.selectedBranch || 'CSE'} • {user.college}
                 </span>
@@ -322,7 +404,7 @@ export const AuthModal: React.FC = () => {
               type="button"
               onClick={handleSignOut}
               disabled={loading}
-              className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-100/80 px-3 py-2 rounded-xl transition-all border border-rose-200 cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-100 px-3 py-2 rounded-xl transition-all border border-rose-200 cursor-pointer flex items-center gap-1.5 shrink-0"
               title="Sign out and reset active session"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -332,133 +414,244 @@ export const AuthModal: React.FC = () => {
         ) : (
           <div className="mb-5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
             <span className="font-medium">
-              Currently in <strong>Guest Mode</strong>. Sign in or register below to begin your personalized journey!
+              Currently in <strong>Guest Mode</strong>. Sign in below or create an account to start your journey fresh from zero!
             </span>
           </div>
         )}
 
-        {/* Dynamic Alerts */}
+        {/* Feedback Messages */}
         {errorMsg && (
-          <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>
           </div>
         )}
         {successMsg && (
-          <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
+          <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-in fade-in">
             <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* Tab Switcher */}
+        {/* Mode Switcher Tabs */}
         <div className="flex rounded-xl bg-slate-100 p-1 mb-5">
           <button
             type="button"
             onClick={() => {
-              setAuthTab('email');
+              setActiveTab('signin');
               setErrorMsg(null);
             }}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              authTab === 'email' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              activeTab === 'signin' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Mail className="w-3.5 h-3.5" />
-            <span>{emailMode === 'signup' ? 'Create New Account (Fresh Start)' : 'Email Sign In'}</span>
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Sign In</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              setAuthTab('phone');
+              setActiveTab('signup');
               setErrorMsg(null);
             }}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              authTab === 'phone' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              activeTab === 'signup' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+            <span>Create Account</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('phone');
+              setErrorMsg(null);
+            }}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'phone' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>Mobile OTP Verification</span>
+            <span>Mobile OTP</span>
           </button>
         </div>
 
-        {/* 1. EMAIL AUTHENTICATION TAB */}
-        {authTab === 'email' && (
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            {emailMode === 'signup' && (
-              <>
-                <div className="p-3 rounded-xl bg-orange-50/70 border border-orange-200 text-xs text-orange-950 font-semibold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-600 shrink-0" />
-                  <span>
-                    New account will start fresh from zero (0 XP, clean roadmap, blank study streak, and your custom portfolio).
-                  </span>
-                </div>
+        {/* 1. SIGN IN TAB */}
+        {activeTab === 'signin' && (
+          <div className="space-y-4">
+            {/* Google 1-Click Sign-In */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2.5"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Rahul Sharma"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
+            <div className="relative flex items-center justify-center my-3">
+              <div className="border-t border-slate-200 w-full" />
+              <span className="bg-white px-2.5 text-[11px] font-semibold text-slate-400 absolute">
+                OR SIGN IN WITH EMAIL
+              </span>
+            </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Engineering Branch
-                    </label>
-                    <select
-                      value={branch}
-                      onChange={(e) => setBranch(e.target.value as BranchCode)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="CSE">Computer Science (CSE)</option>
-                      <option value="AIML">AI & Machine Learning (AIML)</option>
-                      <option value="IT">Information Tech (IT)</option>
-                      <option value="ECE">Electronics (ECE)</option>
-                      <option value="EEE">Electrical (EEE)</option>
-                      <option value="MECH">Mechanical (MECH)</option>
-                      <option value="CIVIL">Civil Engineering</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Academic Year</label>
-                    <select
-                      value={currentYear}
-                      onChange={(e) => setCurrentYear(e.target.value as UserYear)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="1st Year">1st Year (Freshman)</option>
-                      <option value="2nd Year">2nd Year (Sophomore)</option>
-                      <option value="3rd Year">3rd Year (Junior)</option>
-                      <option value="4th Year / Final">4th Year (Final Year)</option>
-                      <option value="Class 12 / JEE">Class 12 / JEE Aspirant</option>
-                    </select>
-                  </div>
+            <form onSubmit={handleSignIn} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="email"
+                    required
+                    value={signInEmail}
+                    onChange={(e) => setSignInEmail(e.target.value)}
+                    placeholder="student@engineering.edu"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">College / Institute</label>
-                  <div className="relative">
-                    <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={college}
-                      onChange={(e) => setCollege(e.target.value)}
-                      placeholder="e.g. IIT Delhi, BITS Pilani, NIT Trichy"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="password"
+                    required
+                    value={signInPassword}
+                    onChange={(e) => setSignInPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
                 </div>
-              </>
-            )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Signing In...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Sign In to Account</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 text-center text-xs text-slate-500">
+              <span>New student? </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('signup');
+                  setErrorMsg(null);
+                }}
+                className="text-orange-600 font-bold hover:underline cursor-pointer"
+              >
+                Register & Start Fresh from Zero
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. CREATE ACCOUNT TAB (STARTS FRESH FROM ZERO) */}
+        {activeTab === 'signup' && (
+          <form onSubmit={handleRegister} className="space-y-3.5">
+            <div className="p-3 rounded-xl bg-orange-50/70 border border-orange-200 text-xs text-orange-950 font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-600 shrink-0" />
+              <span>
+                Your account will be created fresh from ZERO (0 XP, clean roadmap, blank study streak, and your custom portfolio).
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  required
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  placeholder="e.g. Sreya Sengupta"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Branch</label>
+                <select
+                  value={regBranch}
+                  onChange={(e) => setRegBranch(e.target.value as BranchCode)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="CSE">Computer Science (CSE)</option>
+                  <option value="AIML">AI & Machine Learning (AIML)</option>
+                  <option value="IT">Information Tech (IT)</option>
+                  <option value="ECE">Electronics (ECE)</option>
+                  <option value="EEE">Electrical (EEE)</option>
+                  <option value="MECH">Mechanical (MECH)</option>
+                  <option value="CIVIL">Civil Engineering</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Academic Year</label>
+                <select
+                  value={regYear}
+                  onChange={(e) => setRegYear(e.target.value as UserYear)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="1st Year">1st Year (Freshman)</option>
+                  <option value="2nd Year">2nd Year (Sophomore)</option>
+                  <option value="3rd Year">3rd Year (Junior)</option>
+                  <option value="4th Year / Final">4th Year (Final Year)</option>
+                  <option value="Class 12 / JEE">Class 12 / JEE Aspirant</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">College / Institute</label>
+              <div className="relative">
+                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={regCollege}
+                  onChange={(e) => setRegCollege(e.target.value)}
+                  placeholder="e.g. National Institute of Technology (NIT)"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
@@ -467,8 +660,8 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="student@engineering.edu"
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
@@ -482,72 +675,40 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmailMode(emailMode === 'signin' ? 'signup' : 'signin');
-                  setErrorMsg(null);
-                }}
-                className="text-orange-600 font-bold hover:underline cursor-pointer"
-              >
-                {emailMode === 'signin'
-                  ? 'Need a new account? Register here (Start from Zero)'
-                  : 'Already have an account? Sign In'}
-              </button>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Processing...</span>
+                  <span>Creating Account...</span>
                 </>
-              ) : emailMode === 'signup' ? (
+              ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-200" />
                   <span>Create Account & Start Fresh from Zero</span>
                 </>
-              ) : (
-                <>
-                  <ArrowRight className="w-4 h-4" />
-                  <span>Sign In</span>
-                </>
               )}
             </button>
-
-            {/* Quick Demo Switcher */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>Switch to verified demo profile:</span>
-              <button
-                type="button"
-                onClick={handleLoadPrathamDemo}
-                className="text-orange-700 font-bold hover:underline cursor-pointer"
-              >
-                Load Pratham (NIT Surathkal)
-              </button>
-            </div>
           </form>
         )}
 
-        {/* 2. REAL MOBILE NUMBER OTP VERIFICATION TAB */}
-        {authTab === 'phone' && (
+        {/* 3. REAL MOBILE NUMBER OTP VERIFICATION TAB */}
+        {activeTab === 'phone' && (
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Enter 10-Digit Mobile Number (+91)
+                Enter 10-Digit Indian Mobile Number (+91)
               </label>
               <div className="flex gap-2">
                 <span className="inline-flex items-center px-3 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-600">
@@ -565,22 +726,28 @@ export const AuthModal: React.FC = () => {
                   type="button"
                   onClick={handleSendOtp}
                   disabled={loading}
-                  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60 shrink-0"
+                  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60 shrink-0 flex items-center gap-1.5"
                 >
-                  {otpSent ? 'Resend OTP' : 'Send OTP'}
+                  {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{otpSent ? 'Resend' : 'Send OTP'}</span>
                 </button>
               </div>
             </div>
 
             {/* OTP Code Input Boxes */}
             {otpSent && (
-              <div className="p-4 rounded-2xl bg-[#fffbf7] border border-orange-200/80 space-y-3">
+              <div className="p-4 rounded-2xl bg-[#fffbf7] border border-orange-200/80 space-y-3.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700">Enter 6-Digit OTP</span>
+                  <span className="font-bold text-slate-700">Enter 6-Digit Code</span>
                   {serverOtpHint && (
-                    <span className="text-[11px] font-bold text-orange-800 bg-orange-100/90 px-2.5 py-0.5 rounded-md border border-orange-200">
-                      Code Dispatched: <strong>{serverOtpHint}</strong>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAutoFillOtp}
+                      className="text-[11px] font-bold text-orange-800 bg-orange-100/90 hover:bg-orange-200 px-2.5 py-0.5 rounded-md border border-orange-200 cursor-pointer transition-colors"
+                      title="Click to auto-fill code"
+                    >
+                      Use Dispatched OTP: <strong>{serverOtpHint}</strong>
+                    </button>
                   )}
                 </div>
 
@@ -602,7 +769,7 @@ export const AuthModal: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span>Didn't receive SMS?</span>
+                  <span>Didn't receive code?</span>
                   {resendTimer > 0 ? (
                     <span className="font-semibold text-slate-600">Resend in {resendTimer}s</span>
                   ) : (
@@ -639,10 +806,13 @@ export const AuthModal: React.FC = () => {
           </div>
         )}
 
-        {/* Footer info */}
-        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Connected to Firebase: gen-lang-client-0019023513</span>
-          <span className="font-semibold text-emerald-600">● Cloud Firestore Online</span>
+        {/* Database & Cloud Status Footer */}
+        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Cloud SQL PostgreSQL (asia-southeast1)</span>
+          </span>
+          <span className="font-semibold text-orange-600">Firebase Auth & Firestore</span>
         </div>
       </div>
     </div>

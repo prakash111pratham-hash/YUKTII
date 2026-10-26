@@ -20,8 +20,21 @@ import {
   Award,
   FileDown,
   Download,
+  ShieldCheck,
+  BookCheck,
+  Check,
+  Layers,
+  ChevronRight,
+  X,
+  ArrowUpRight,
+  RefreshCw,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import {
+  verifySkillsAgainstIndustryFrameworks,
+  SkillVerificationResult,
+  IndustrySkillGap,
+} from '../services/skillVerificationService';
 
 export const ResumePortfolioView: React.FC = () => {
   const { resumeData, setResumeData, user, incrementXp } = useApp();
@@ -33,6 +46,97 @@ export const ResumePortfolioView: React.FC = () => {
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   const atsReport = calculateResumeAtsScore(resumeData);
+
+  // Industry Skill Verification State
+  const [isVerifyingSkills, setIsVerifyingSkills] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<SkillVerificationResult | null>(null);
+  const [showFullVerificationModal, setShowFullVerificationModal] = useState(false);
+  const [addingSkillToCategory, setAddingSkillToCategory] = useState<string | null>(null);
+  const [customSkillInput, setCustomSkillInput] = useState('');
+
+  const handleVerifySkills = async () => {
+    setIsVerifyingSkills(true);
+    try {
+      const result = await verifySkillsAgainstIndustryFrameworks(
+        resumeData.skills,
+        user.careerGoal || 'Software Development Engineer (SDE-1)',
+        user.selectedBranch || 'Computer Science & Engineering (CSE)'
+      );
+      setVerificationResult(result);
+      incrementXp(40, 'Industry Framework Skill Verification Completed');
+      if (result.overallAlignmentScore >= 80) {
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      }
+    } catch (e) {
+      console.error('Skill verification failed', e);
+    } finally {
+      setIsVerifyingSkills(false);
+    }
+  };
+
+  const handleAddSuggestedSkill = (gap: IndustrySkillGap) => {
+    const updatedSkills = resumeData.skills.map((c) => ({ ...c, items: [...c.items] }));
+    let targetCat = updatedSkills.find((c) =>
+      c.category.toLowerCase().includes(gap.suggestedCategory.toLowerCase().split(' ')[0])
+    );
+
+    if (!targetCat) {
+      targetCat = updatedSkills.find(
+        (c) =>
+          c.category.toLowerCase().includes('tool') ||
+          c.category.toLowerCase().includes('data') ||
+          c.category.toLowerCase().includes('frame')
+      );
+    }
+
+    if (targetCat) {
+      if (!targetCat.items.includes(gap.skill)) {
+        targetCat.items.push(gap.skill);
+      }
+    } else {
+      updatedSkills.push({
+        category: gap.suggestedCategory,
+        items: [gap.skill],
+      });
+    }
+
+    setResumeData({
+      ...resumeData,
+      skills: updatedSkills,
+    });
+
+    if (verificationResult) {
+      setVerificationResult({
+        ...verificationResult,
+        highPriorityGaps: verificationResult.highPriorityGaps.filter((g) => g.skill !== gap.skill),
+        overallAlignmentScore: Math.min(98, verificationResult.overallAlignmentScore + 3),
+      });
+    }
+
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+    incrementXp(25, `Added ${gap.skill} to resume`);
+    setExportNotice(`Added "${gap.skill}" to your resume under ${gap.suggestedCategory}!`);
+    setTimeout(() => setExportNotice(null), 4000);
+  };
+
+  const handleAddCustomSkill = (categoryName: string) => {
+    if (!customSkillInput.trim()) return;
+    const skillName = customSkillInput.trim();
+    const updatedSkills = resumeData.skills.map((c) => {
+      if (c.category === categoryName && !c.items.includes(skillName)) {
+        return { ...c, items: [...c.items, skillName] };
+      }
+      return c;
+    });
+
+    setResumeData({
+      ...resumeData,
+      skills: updatedSkills,
+    });
+    setCustomSkillInput('');
+    setAddingSkillToCategory(null);
+    incrementXp(15, `Added custom skill: ${skillName}`);
+  };
 
   const handlePrint = () => {
     setActiveTabSub('resume');
@@ -307,6 +411,129 @@ export const ResumePortfolioView: React.FC = () => {
               </div>
             </div>
 
+            {/* Industry Framework Skill Verification (NASSCOM FutureSkills & IEEE CS2023) */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Industry Skill Audit
+                    </h3>
+                    <p className="text-[11px] text-slate-500">NASSCOM & IEEE Standards</p>
+                  </div>
+                </div>
+                {verificationResult && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    {verificationResult.overallAlignmentScore}% Aligned
+                  </span>
+                )}
+              </div>
+
+              {!verificationResult ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Benchmark your technical skills against <strong>NASSCOM FutureSkills Prime</strong> and <strong>IEEE CS2023</strong> curricula via Gemini AI to reveal missing Day-1 placement gaps.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleVerifySkills}
+                    disabled={isVerifyingSkills}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-60"
+                  >
+                    {isVerifyingSkills ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Verifying with Gemini AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Verify with Industry Frameworks</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  <div className="p-3 rounded-xl bg-emerald-50/90 border border-emerald-200 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-950">{verificationResult.ratingLevel}</span>
+                      <span className="font-extrabold text-emerald-700">{verificationResult.overallAlignmentScore}/100</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900 leading-relaxed">
+                      {verificationResult.summary}
+                    </p>
+                  </div>
+
+                  {/* Framework tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {verificationResult.frameworksReferenced.slice(0, 2).map((fw, idx) => (
+                      <span key={idx} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-medium">
+                        ✓ {fw}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Missing High Priority Industry Gaps */}
+                  {verificationResult.highPriorityGaps.length > 0 && (
+                    <div className="space-y-2 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-800">
+                        <span className="text-amber-700 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" /> High-Demand Missing Skills:
+                        </span>
+                        <span className="text-slate-400 font-normal text-[10px]">1-Click Add</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {verificationResult.highPriorityGaps.map((gap, gIdx) => (
+                          <div
+                            key={gIdx}
+                            className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] flex items-center justify-between gap-2"
+                          >
+                            <div className="min-w-0 pr-1">
+                              <span className="font-bold text-slate-900 block truncate">{gap.skill}</span>
+                              <span className="block text-[10px] text-slate-500 leading-tight">{gap.reason}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAddSuggestedSkill(gap)}
+                              className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowFullVerificationModal(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <span>Full Audit & Feedback</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleVerifySkills}
+                      disabled={isVerifyingSkills}
+                      className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                      title="Re-verify skills with Gemini"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isVerifyingSkills ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Recommendations */}
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -385,14 +612,67 @@ export const ResumePortfolioView: React.FC = () => {
 
             {/* Technical Skills */}
             <div className="space-y-1.5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-0.5">
-                Technical Skills
-              </h2>
-              <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-0.5">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  Technical Skills
+                </h2>
+                {verificationResult && (
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 print:border-none print:bg-transparent">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600 print:hidden" />
+                    Accredited Industry Verified ({verificationResult.overallAlignmentScore}%)
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2 text-xs">
                 {resumeData.skills.map((cat, idx) => (
-                  <div key={idx}>
-                    <strong className="text-slate-900">{cat.category}: </strong>
-                    <span className="text-slate-700">{cat.items.join(', ')}</span>
+                  <div key={idx} className="group">
+                    <div className="flex flex-wrap items-baseline justify-between gap-1">
+                      <div>
+                        <strong className="text-slate-900">{cat.category}: </strong>
+                        <span className="text-slate-700">{cat.items.join(', ')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingSkillToCategory(addingSkillToCategory === cat.category ? null : cat.category);
+                          setCustomSkillInput('');
+                        }}
+                        className="text-[10px] font-semibold text-orange-600 hover:text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity print:hidden cursor-pointer"
+                      >
+                        + Add to {cat.category}
+                      </button>
+                    </div>
+
+                    {/* Inline skill add input */}
+                    {addingSkillToCategory === cat.category && (
+                      <div className="flex items-center gap-2 mt-1.5 p-2 rounded-lg bg-orange-50/70 border border-orange-200 print:hidden">
+                        <input
+                          type="text"
+                          value={customSkillInput}
+                          onChange={(e) => setCustomSkillInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleAddCustomSkill(cat.category);
+                          }}
+                          placeholder={`Enter skill (e.g. Docker, Redis, Kubernetes)...`}
+                          className="flex-1 px-2.5 py-1 text-xs rounded-md bg-white border border-orange-300 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddCustomSkill(cat.category)}
+                          className="px-2.5 py-1 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-md cursor-pointer"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAddingSkillToCategory(null)}
+                          className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -566,6 +846,171 @@ export const ResumePortfolioView: React.FC = () => {
                   {b}
                 </span>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comprehensive Industry Framework Audit & Constructive Feedback Modal */}
+      {showFullVerificationModal && verificationResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 sm:p-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    Industry Framework Verification Report
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Benchmarked against NASSCOM FutureSkills Prime & IEEE CS2023 Curricula
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullVerificationModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Score & Tier Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                  Accreditation Tier
+                </span>
+                <div className="text-lg font-extrabold text-emerald-950">
+                  {verificationResult.ratingLevel}
+                </div>
+                <div className="text-xs text-emerald-800 mt-0.5">
+                  Verified for {user.careerGoal || 'Software Engineer'} roles in {user.selectedBranch || 'CSE'}
+                </div>
+              </div>
+              <div className="text-right sm:border-l sm:border-emerald-200 sm:pl-6 shrink-0">
+                <div className="text-3xl font-black text-emerald-700">
+                  {verificationResult.overallAlignmentScore}%
+                </div>
+                <div className="text-[11px] font-bold text-emerald-900">Placement Benchmark</div>
+              </div>
+            </div>
+
+            {/* Evaluator Summary */}
+            <div className="space-y-1.5">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Industry Evaluator Summary
+              </h4>
+              <p className="text-xs text-slate-700 leading-relaxed p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                {verificationResult.summary}
+              </p>
+            </div>
+
+            {/* Categorized Breakdown */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Domain Breakdown & Framework Alignment
+              </h4>
+              <div className="space-y-2.5">
+                {verificationResult.categorizedVerification.map((cat, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-slate-900 text-xs">{cat.category}</span>
+                        <span className="block text-[10px] text-slate-500 font-medium">
+                          Recognized by: {cat.standardRecognized}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-emerald-700 text-xs">{cat.score}%</span>
+                        <span className="block text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                          {cat.industryRating}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {cat.verifiedSkills.map((sk, sIdx) => (
+                        <span
+                          key={sIdx}
+                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 font-medium flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3 text-emerald-600" /> {sk}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 italic pt-1 border-t border-slate-100">
+                      Feedback: {cat.feedback}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Missing High Priority Gaps */}
+            {verificationResult.highPriorityGaps.length > 0 && (
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> High-Priority Missing Skills for Day-1 Shortlists
+                </h4>
+                <div className="space-y-2">
+                  {verificationResult.highPriorityGaps.map((gap, gIdx) => (
+                    <div
+                      key={gIdx}
+                      className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-slate-900">{gap.skill}</strong>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-bold uppercase">
+                            {gap.importance}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 mt-0.5">{gap.reason}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddSuggestedSkill(gap)}
+                        className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add to Resume</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Constructive Recommendations */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-orange-600" /> Actionable Placement Recommendations
+              </h4>
+              <ul className="text-xs text-slate-600 space-y-2 bg-orange-50/50 p-4 rounded-xl border border-orange-100">
+                {verificationResult.actionableRecommendations.map((rec, rIdx) => (
+                  <li key={rIdx} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0 mt-0.5" />
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowFullVerificationModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

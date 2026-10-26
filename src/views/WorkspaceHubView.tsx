@@ -322,7 +322,7 @@ export const WorkspaceHubView: React.FC = () => {
       id: 'sp-2',
       displayName: 'TCS Digital / Prime Preparation Group',
       type: 'Study Group',
-      lastMessage: 'Pratham: Sharing recent Advanced Quantitative question patterns from yesterday drive.',
+      lastMessage: 'Student Mentor: Sharing recent Advanced Quantitative question patterns from yesterday drive.',
       memberCount: 185,
     },
     {
@@ -342,7 +342,7 @@ export const WorkspaceHubView: React.FC = () => {
     ],
     'sp-2': [
       { author: 'Rohan Iyer', text: 'Anyone solved the cryptarithmetic puzzle from Infosys round?', time: 'Yesterday' },
-      { author: 'Pratham', text: 'Yes, check the Practice Arena in YUKTI under Company Mocks, it has full explanations.', time: 'Yesterday' },
+      { author: 'Peer Mentor', text: 'Yes, check the Practice Arena in YUKTI under Company Mocks, it has full explanations.', time: 'Yesterday' },
     ],
     'sp-3': [
       { author: 'Prof. Desai', text: 'Tata Motors EV team is hosting an interactive session on battery pack thermal design.', time: 'Oct 19' },
@@ -395,14 +395,20 @@ export const WorkspaceHubView: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
     try {
-      const res = await googleSignIn();
+      const res = await googleSignIn(true);
       if (res) {
         setCurrentUser(res.user);
         setAccessToken(res.accessToken);
         confetti({ particleCount: 50, spread: 60 });
       }
-    } catch (err) {
-      console.error('Sign in failed:', err);
+    } catch (err: any) {
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        String(err?.message || '').includes('popup-closed-by-user')
+      ) {
+        return;
+      }
+      console.warn('Workspace sign in notice:', err);
     } finally {
       setIsSigningIn(false);
     }
@@ -1201,7 +1207,7 @@ export const WorkspaceHubView: React.FC = () => {
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">Document Title</label>
                 <input
                   type="text"
-                  placeholder="e.g. Pratham_SDE_Resume"
+                  placeholder="e.g. SDE_Placement_Resume"
                   value={newDocTitle}
                   onChange={(e) => setNewDocTitle(e.target.value)}
                   required

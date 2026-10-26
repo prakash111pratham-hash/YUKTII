@@ -94,27 +94,32 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Google Auth Provider with Workspace scopes
-const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/gmail.readonly');
-provider.addScope('https://www.googleapis.com/auth/gmail.send');
-provider.addScope('https://www.googleapis.com/auth/gmail.compose');
-provider.addScope('https://www.googleapis.com/auth/chat.spaces.readonly');
-provider.addScope('https://www.googleapis.com/auth/chat.messages');
-provider.addScope('https://www.googleapis.com/auth/chat.messages.readonly');
-provider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
-provider.addScope('https://www.googleapis.com/auth/classroom.coursework.me.readonly');
-provider.addScope('https://www.googleapis.com/auth/classroom.announcements.readonly');
-provider.addScope('https://www.googleapis.com/auth/documents');
-provider.addScope('https://www.googleapis.com/auth/documents.readonly');
-provider.addScope('https://www.googleapis.com/auth/drive.file');
-provider.addScope('https://www.googleapis.com/auth/drive.readonly');
-provider.addScope('https://www.googleapis.com/auth/tasks');
-provider.addScope('https://www.googleapis.com/auth/tasks.readonly');
-provider.addScope('https://www.googleapis.com/auth/calendar.events');
-provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-provider.addScope('https://www.googleapis.com/auth/forms.body');
-provider.addScope('https://www.googleapis.com/auth/forms.responses.readonly');
+// Standard Google Auth Provider for student login
+export const standardGoogleProvider = new GoogleAuthProvider();
+standardGoogleProvider.setCustomParameters({ prompt: 'select_account' });
+
+// Google Auth Provider with full Google Workspace integration scopes
+export const workspaceGoogleProvider = new GoogleAuthProvider();
+workspaceGoogleProvider.setCustomParameters({ prompt: 'consent' });
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.compose');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/chat.spaces.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/chat.messages');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/chat.messages.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.me.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/documents');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/documents.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/tasks');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/tasks.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/forms.body');
+workspaceGoogleProvider.addScope('https://www.googleapis.com/auth/forms.responses.readonly');
 
 let cachedAccessToken: string | null = null;
 
@@ -132,9 +137,12 @@ export const initAuth = (
   });
 };
 
-export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+export const googleSignIn = async (
+  withWorkspaceScopes: boolean = false
+): Promise<{ user: User; accessToken: string } | null> => {
+  const targetProvider = withWorkspaceScopes ? workspaceGoogleProvider : standardGoogleProvider;
   try {
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, targetProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (credential?.accessToken) {
       cachedAccessToken = credential.accessToken;
@@ -143,7 +151,21 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       user: result.user,
       accessToken: cachedAccessToken || '',
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Gracefully handle user cancellation or popup dismissal without error explosion
+    if (
+      error?.code === 'auth/popup-closed-by-user' ||
+      error?.code === 'auth/cancelled-popup-request' ||
+      error?.code === 'auth/user-cancelled' ||
+      String(error?.message || '').includes('popup-closed-by-user') ||
+      String(error?.message || '').includes('cancelled-popup-request')
+    ) {
+      console.warn('Google Sign-In popup was closed or cancelled by the user.');
+      return null;
+    }
+    if (error?.code === 'auth/popup-blocked') {
+      throw new Error('Sign-in popup was blocked by your browser. Please allow popups for this site.');
+    }
     console.error('Firebase Google Sign-In error:', error);
     throw error;
   }

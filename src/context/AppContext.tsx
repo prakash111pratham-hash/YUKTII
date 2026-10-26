@@ -94,7 +94,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('careerpath_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Automatically purge any stale Pratham references and start fresh
+        if (
+          parsed.email === 'prakash111pratham@gmail.com' ||
+          parsed.name === 'Pratham' ||
+          String(parsed.email || '').includes('pratham')
+        ) {
+          localStorage.removeItem('careerpath_user');
+          localStorage.removeItem('careerpath_resume');
+          localStorage.removeItem('careerpath_study_goal');
+          localStorage.removeItem('careerpath_practice_sessions');
+          localStorage.removeItem('careerpath_apps');
+          localStorage.removeItem('careerpath_badges');
+          return SAMPLE_STUDENT_PROFILE;
+        }
+        return parsed;
       } catch {
         return SAMPLE_STUDENT_PROFILE;
       }
@@ -111,7 +126,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('careerpath_resume');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.email === 'prakash111pratham@gmail.com' || parsed.fullName === 'Pratham') {
+          return SAMPLE_RESUME_DATA;
+        }
+        return parsed;
       } catch {
         return SAMPLE_RESUME_DATA;
       }
@@ -126,38 +145,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [practiceSessions, setPracticeSessions] = useState<PracticeSessionRecord[]>(() => {
     const saved = localStorage.getItem('careerpath_practice_sessions');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return generateInitialPracticeSessions();
-      }
-    }
-    return generateInitialPracticeSessions();
+    return saved ? JSON.parse(saved) : generateInitialPracticeSessions();
   });
 
   const [studyGoal, setStudyGoal] = useState<DailyStudyGoal>(() => {
     const saved = localStorage.getItem('careerpath_study_goal');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return SAMPLE_STUDY_GOAL;
-      }
-    }
-    return SAMPLE_STUDY_GOAL;
+    return saved ? JSON.parse(saved) : SAMPLE_STUDY_GOAL;
   });
 
   const [careerBadges, setCareerBadges] = useState<CareerBadge[]>(() => {
     const saved = localStorage.getItem('careerpath_badges');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return CAREER_BADGES_DATA;
-      }
-    }
-    return CAREER_BADGES_DATA;
+    return saved ? JSON.parse(saved) : CAREER_BADGES_DATA;
   });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -166,7 +164,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showUniqueFeaturesModal, setShowUniqueFeaturesModal] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
-  // Sync state to localStorage & Firestore
+  // Sync state to localStorage & Firestore & Cloud SQL
   useEffect(() => {
     localStorage.setItem('careerpath_auth_state', String(isAuthenticated));
   }, [isAuthenticated]);
@@ -175,6 +173,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('careerpath_user', JSON.stringify(user));
     if (isAuthenticated) {
       syncUserProfileToFirestore(user).catch(() => {});
+      // Also sync to Cloud SQL backend
+      fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user }),
+      }).catch(() => {});
     }
   }, [user, isAuthenticated]);
 
@@ -211,15 +215,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   /**
    * Log in or register a user:
-   * If it's a new account or different student, completely reset data to start fresh from zero!
+   * When any user logs in, completely initialize data to start fresh from ZERO:
+   * 0 XP, 0 Streak, clean roadmap, personalized resume, fresh goals, and no repeated data!
    */
   const loginUser = (userData: Partial<UserProfile>, isNew: boolean = false) => {
-    const isPratham =
-      userData.email === 'prakash111pratham@gmail.com' ||
-      userData.name === 'Pratham';
+    const isDifferentEmail = Boolean(
+      userData.email && userData.email.toLowerCase() !== (user.email || '').toLowerCase()
+    );
 
-    if (isNew || (!isPratham && userData.email && userData.email !== user.email)) {
-      // START FRESH FROM ZERO FOR NEW STUDENT
+    if (isNew || isDifferentEmail) {
+      // START FRESH FROM ZERO FOR ANY NEW OR SWITCHED USER
       const freshUser = createFreshUserProfile(userData);
       const freshResume = createFreshResumeData(freshUser);
       const freshGoal = createFreshStudyGoal();
@@ -242,20 +247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('careerpath_badges', JSON.stringify(freshBadgesList));
       localStorage.setItem('careerpath_auth_state', 'true');
 
-      console.log(`[USER SESSION] Started fresh from zero for new student: ${freshUser.name} (${freshUser.email})`);
-    } else if (isPratham) {
-      // Restore Pratham's sample profile
-      setUser({
-        ...SAMPLE_STUDENT_PROFILE,
-        ...userData,
-      });
-      setResumeData(SAMPLE_RESUME_DATA);
-      setStudyGoal(SAMPLE_STUDY_GOAL);
-      setPracticeSessions(generateInitialPracticeSessions());
-      setApplications(SAMPLE_APPLICATIONS);
-      setCareerBadges(CAREER_BADGES_DATA);
-      setIsAuthenticated(true);
-      localStorage.setItem('careerpath_auth_state', 'true');
+      console.log(`[USER SESSION] Started fresh from zero for: ${freshUser.name} (${freshUser.email})`);
     } else {
       // Update existing session
       setUser((prev) => ({ ...prev, ...userData }));
@@ -277,7 +269,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(false);
     localStorage.setItem('careerpath_auth_state', 'false');
 
-    // Reset current active profile to clean state
+    // Reset current active profile to clean guest state
     const guestUser: UserProfile = {
       id: 'guest',
       name: 'Guest Student',
@@ -285,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentYear: '1st Year',
       college: 'Engineering College',
       selectedBranch: 'CSE',
-      targetLPA: 12,
+      targetLPA: 14,
       cgpa: 8.0,
       xp: 0,
       streakDays: 0,
@@ -312,6 +304,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     console.log('[USER SESSION] Signed out successfully.');
   };
+
 
   const addApplication = (app: ApplicationRecord) => {
     setApplications((prev) => [app, ...prev]);

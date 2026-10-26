@@ -8,6 +8,7 @@ import { SkillProgressionChart } from '../components/SkillProgressionChart';
 import { Badges } from '../components/Badges';
 import { ThreeCareerScene } from '../components/ThreeCareerScene';
 import { FourYearRoadmap } from '../components/FourYearRoadmap';
+import { FourYearGrowthDashboard } from '../components/FourYearGrowthDashboard';
 import { SkillHeatmap } from '../components/SkillHeatmap';
 import { DailyStudyGoal } from '../components/DailyStudyGoal';
 import { LevelProgression } from '../components/LevelProgression';
@@ -100,26 +101,7 @@ export const DashboardView: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                 <span>{user.currentYear} • {user.college || 'Engineering College'}</span>
               </div>
-              {user.name === 'Pratham' ? (
-                <>
-                  <a
-                    href="https://github.com/prakash111pratham-hash"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
-                  >
-                    <span>GitHub</span>
-                  </a>
-                  <a
-                    href="https://www.linkedin.com/in/pratham-prakash-3a8033362/?"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/15 transition-colors"
-                  >
-                    <span>LinkedIn</span>
-                  </a>
-                </>
-              ) : resumeData?.github || resumeData?.linkedin ? (
+              {resumeData?.github || resumeData?.linkedin ? (
                 <>
                   {resumeData.github && (
                     <a
@@ -244,6 +226,9 @@ export const DashboardView: React.FC = () => {
 
       {/* Level Progression & Milestone XP System */}
       <LevelProgression />
+
+      {/* 4-Year Engineering Journey Visual Growth Dashboard (Recharts: Academic, Technical, Extracurricular) */}
+      <FourYearGrowthDashboard />
 
       {/* Interactive 4-Year Journey Roadmap (Milestones: Assessment Passed, Internship Secured, etc.) */}
       <FourYearRoadmap />
