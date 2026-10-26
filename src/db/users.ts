@@ -1,4 +1,4 @@
-import { db } from './index.ts';
+import { db, isDatabaseConfigured } from './index.ts';
 import { users, resumes, studyGoals, practiceLogs, applications } from './schema.ts';
 import { eq, desc } from 'drizzle-orm';
 
@@ -20,6 +20,9 @@ export interface UserUpsertData {
 }
 
 export async function upsertDbUser(userData: UserUpsertData) {
+  if (!isDatabaseConfigured()) {
+    return null;
+  }
   try {
     const existing = await db.select().from(users).where(eq(users.email, userData.email.toLowerCase().trim())).limit(1);
     if (existing && existing.length > 0) {
@@ -68,6 +71,9 @@ export async function upsertDbUser(userData: UserUpsertData) {
 }
 
 export async function findDbUserByEmail(email: string) {
+  if (!isDatabaseConfigured()) {
+    return null;
+  }
   try {
     const rows = await db
       .select()
@@ -76,12 +82,15 @@ export async function findDbUserByEmail(email: string) {
       .limit(1);
     return rows[0] || null;
   } catch (error) {
-    console.error('Failed to find user by email in database:', error);
+    console.warn('Failed to find user by email in database:', error);
     return null;
   }
 }
 
 export async function updateDbUserPhone(email: string, phone: string, isVerified: boolean) {
+  if (!isDatabaseConfigured()) {
+    return null;
+  }
   try {
     const updated = await db
       .update(users)
@@ -94,7 +103,7 @@ export async function updateDbUserPhone(email: string, phone: string, isVerified
       .returning();
     return updated[0] || null;
   } catch (error) {
-    console.error('Failed to update phone in database:', error);
+    console.warn('Failed to update phone in database:', error);
     return null;
   }
 }

@@ -1118,6 +1118,23 @@ For ${studentContext?.branch || 'CSE'} students targeting top-tier campus placem
   }
 });
 
+// Catch-all for API routes: Ensure any unmatched /api/* route returns JSON 404, NEVER Vite HTML
+app.all('/api/*', (req: Request, res: Response) => {
+  return res.status(404).json({
+    success: false,
+    error: `API endpoint ${req.method} ${req.path} not found.`,
+  });
+});
+
+// Global API error handler ensuring JSON responses
+app.use((err: any, req: Request, res: Response, next: any) => {
+  if (req.path.startsWith('/api/')) {
+    console.error('Unhandled API error on path:', req.path, err);
+    return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+  }
+  next(err);
+});
+
 // Mount Vite or static server
 if (process.env.NODE_ENV !== 'production') {
   const { createServer: createViteServer } = await import('vite');
