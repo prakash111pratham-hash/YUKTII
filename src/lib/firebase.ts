@@ -73,8 +73,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -90,8 +91,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.warn('Firestore Sync Notice:', JSON.stringify(errInfo));
 }
 
 // Standard Google Auth Provider for student login
@@ -205,7 +205,12 @@ export const logout = async () => {
 
 // Firestore Persistence Helpers
 export async function syncUserProfileToFirestore(user: UserProfile): Promise<void> {
-  const currentUid = auth.currentUser?.uid || user.id;
+  // Only attempt direct client Firestore write if the user has an active Firebase Auth session
+  // Cloud SQL backend persistence is handled concurrently by /api/user/sync
+  if (!auth.currentUser) {
+    return;
+  }
+  const currentUid = auth.currentUser.uid;
   const path = `users/${currentUid}`;
   try {
     await setDoc(
@@ -237,7 +242,10 @@ export async function syncDailyGoalToFirestore(
   userId: string,
   goal: DailyStudyGoal
 ): Promise<void> {
-  const currentUid = auth.currentUser?.uid || userId;
+  if (!auth.currentUser) {
+    return;
+  }
+  const currentUid = auth.currentUser.uid;
   const todayKey = new Date().toISOString().slice(0, 10);
   const path = `users/${currentUid}/studyGoals/${todayKey}`;
   try {
@@ -263,7 +271,10 @@ export async function syncPracticeLogToFirestore(
   userId: string,
   log: PracticeSessionRecord
 ): Promise<void> {
-  const currentUid = auth.currentUser?.uid || userId;
+  if (!auth.currentUser) {
+    return;
+  }
+  const currentUid = auth.currentUser.uid;
   const path = `users/${currentUid}/practiceLogs/${log.id}`;
   try {
     await setDoc(
