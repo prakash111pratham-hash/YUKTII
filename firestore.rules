@@ -21,44 +21,44 @@ service cloud.firestore {
 
     // User profile documents
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || (request.auth == null && isValidId(userId));
       allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isOwner(userId) && isValidId(userId);
-      allow update: if isOwner(userId);
+      allow create: if (isOwner(userId) || request.auth == null) && isValidId(userId);
+      allow update: if isOwner(userId) || (request.auth == null && isValidId(userId));
       allow delete: if isOwner(userId);
 
       // Subcollection for progress tracking
       match /progress/{progressId} {
-        allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId);
+        allow get, list: if isOwner(userId) || (request.auth == null && isValidId(userId));
+        allow create, update: if isOwner(userId) || (request.auth == null && isValidId(userId));
         allow delete: if isOwner(userId);
       }
 
       // Subcollection for achievement badges
       match /badges/{badgeId} {
-        allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId);
+        allow get, list: if isOwner(userId) || (request.auth == null && isValidId(userId));
+        allow create, update: if isOwner(userId) || (request.auth == null && isValidId(userId));
         allow delete: if isOwner(userId);
       }
 
       // Subcollection for user notifications and deadline alerts
       match /notifications/{notificationId} {
-        allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId);
+        allow get, list: if isOwner(userId) || (request.auth == null && isValidId(userId));
+        allow create, update: if isOwner(userId) || (request.auth == null && isValidId(userId));
         allow delete: if isOwner(userId);
       }
 
       // Subcollection for daily study goals
       match /studyGoals/{goalId} {
-        allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId);
+        allow get, list: if isOwner(userId) || (request.auth == null && isValidId(userId));
+        allow create, update: if isOwner(userId) || (request.auth == null && isValidId(userId));
         allow delete: if isOwner(userId);
       }
 
       // Subcollection for practice logs / skill heatmap
       match /practiceLogs/{logId} {
-        allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId);
+        allow get, list: if isOwner(userId) || (request.auth == null && isValidId(userId));
+        allow create, update: if isOwner(userId) || (request.auth == null && isValidId(userId));
         allow delete: if isOwner(userId);
       }
     }

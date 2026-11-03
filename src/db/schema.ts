@@ -14,6 +14,8 @@ export const users = pgTable('users', {
   college: text('college').default('Engineering College'),
   selectedBranch: text('selected_branch').default('CSE'),
   currentYear: text('current_year').default('1st Year'),
+  graduationYear: text('graduation_year').default('2028'),
+  interests: jsonb('interests').$type<string[]>(),
   xp: integer('xp').default(0).notNull(),
   streakDays: integer('streak_days').default(0).notNull(),
   targetLpa: integer('target_lpa').default(14),

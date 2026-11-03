@@ -13,6 +13,8 @@ export interface UserUpsertData {
   college?: string;
   selectedBranch?: string;
   currentYear?: string;
+  graduationYear?: string;
+  interests?: string[];
   xp?: number;
   streakDays?: number;
   targetLpa?: number;
@@ -35,6 +37,8 @@ export async function upsertDbUser(userData: UserUpsertData) {
           college: userData.college || existing[0].college,
           selectedBranch: userData.selectedBranch || existing[0].selectedBranch,
           currentYear: userData.currentYear || existing[0].currentYear,
+          graduationYear: userData.graduationYear || existing[0].graduationYear,
+          interests: userData.interests !== undefined ? userData.interests : existing[0].interests,
           xp: userData.xp !== undefined ? userData.xp : existing[0].xp,
           streakDays: userData.streakDays !== undefined ? userData.streakDays : existing[0].streakDays,
           updatedAt: new Date(),
@@ -57,6 +61,8 @@ export async function upsertDbUser(userData: UserUpsertData) {
         college: userData.college || 'Engineering College',
         selectedBranch: userData.selectedBranch || 'CSE',
         currentYear: userData.currentYear || '1st Year',
+        graduationYear: userData.graduationYear || '2028',
+        interests: userData.interests || [],
         xp: userData.xp || 0,
         streakDays: userData.streakDays || 0,
         targetLpa: userData.targetLpa || 14,

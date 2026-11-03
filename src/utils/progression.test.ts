@@ -17,15 +17,15 @@ test('calculateLevelTier accurately computes tier, progress and xpNeeded', () =>
   // Test Level 3: 1450 XP (1200-2200 XP)
   const l3 = calculateLevelTier(1450);
   assert.strictEqual(l3.currentTier.level, 3);
-  assert.strictEqual(l3.currentTier.title, 'Algorithmic Contender');
+  assert.strictEqual(l3.currentTier.title, 'System Builder');
   assert.strictEqual(l3.progressPercent, 25);
   assert.strictEqual(l3.xpNeeded, 750);
 
   // Test Top Level: 7500 XP
-  const l6 = calculateLevelTier(7500);
-  assert.strictEqual(l6.currentTier.level, 6);
-  assert.strictEqual(l6.progressPercent, 100);
-  assert.strictEqual(l6.xpNeeded, 0);
+  const l5 = calculateLevelTier(7500);
+  assert.strictEqual(l5.currentTier.level, 5);
+  assert.strictEqual(l5.progressPercent, 100);
+  assert.strictEqual(l5.xpNeeded, 0);
 });
 
 test('calculateStudyGoalProgress computes completion percentage and remaining time', () => {

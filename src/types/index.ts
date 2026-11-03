@@ -25,6 +25,7 @@ export interface UserProfile {
   careerGoal?: string;
   completedAssessment: boolean;
   learningStyle?: 'Visual / Practical' | 'Analytical / Theoretical' | 'Project-Driven' | 'Collaborative';
+  graduationYear?: number | string;
 }
 
 export type EngineeringDomain = 'dsa' | 'system_design' | 'core_cs' | 'aptitude' | 'gd_verbal';

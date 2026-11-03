@@ -1,16 +1,17 @@
 import { ApplicationRecord, ResumeData, UserProfile, DailyStudyGoal, CareerBadge } from '../types';
 
 export const SAMPLE_STUDENT_PROFILE: UserProfile = {
-  id: 'usr-sreya',
-  name: 'Sreya Sengupta',
-  email: 'sreya0913@gmail.com',
+  id: 'usr-pratham',
+  name: 'Pratham Prakash',
+  email: 'prakash111pratham@gmail.com',
   avatar: undefined,
   currentYear: '1st Year',
+  graduationYear: '2028',
   college: 'National Institute of Technology (NIT)',
-  city: 'Bengaluru / Kolkata',
+  city: 'Bengaluru, India',
   targetLPA: 18,
   selectedBranch: 'CSE',
-  cgpa: 8.5,
+  cgpa: 8.8,
   xp: 0, // Starts fresh from zero
   streakDays: 0, // Starts fresh from zero
   badges: [],
@@ -18,13 +19,13 @@ export const SAMPLE_STUDENT_PROFILE: UserProfile = {
   careerGoal: 'Secure Tier-1 Product Engineering Offer (18+ LPA) in Campus Drives',
   completedAssessment: false,
   learningStyle: 'Project-Driven',
-  isPhoneVerified: false,
+  isPhoneVerified: true,
   isEmailVerified: true,
 };
 
 export const SAMPLE_RESUME_DATA: ResumeData = {
-  fullName: 'Sreya Sengupta',
-  email: 'sreya0913@gmail.com',
+  fullName: 'Pratham Prakash',
+  email: 'prakash111pratham@gmail.com',
   phone: '+91 98765 43210',
   location: 'Bengaluru, India',
   linkedin: '',
@@ -211,8 +212,16 @@ export function generateInitialPracticeSessions() {
 }
 
 export function createFreshUserProfile(overrides?: Partial<UserProfile>): UserProfile {
-  const name = overrides?.name || 'Sreya Sengupta';
-  const email = overrides?.email || 'sreya0913@gmail.com';
+  const email = overrides?.email || 'prakash111pratham@gmail.com';
+  const derivedNameFromEmail = email.includes('@')
+    ? email
+        .split('@')[0]
+        .split(/[._-]/)
+        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+        .filter(Boolean)
+        .join(' ')
+    : 'Student';
+  const name = overrides?.name || derivedNameFromEmail || 'Engineering Student';
   return {
     id: overrides?.id || `usr-${Date.now()}`,
     name,
@@ -223,6 +232,7 @@ export function createFreshUserProfile(overrides?: Partial<UserProfile>): UserPr
     isEmailVerified: true,
     authProvider: overrides?.authProvider || 'email',
     currentYear: overrides?.currentYear || '1st Year',
+    graduationYear: overrides?.graduationYear || '2028',
     college: overrides?.college || 'National Institute of Technology (NIT)',
     city: overrides?.city || 'India',
     targetLPA: overrides?.targetLPA || 18,
@@ -232,7 +242,7 @@ export function createFreshUserProfile(overrides?: Partial<UserProfile>): UserPr
     xp: overrides?.xp ?? 0, // Starts at fresh zero
     streakDays: overrides?.streakDays ?? 0,
     badges: [],
-    interests: ['Data Structures', 'Web Systems', 'Algorithms'],
+    interests: overrides?.interests || ['Data Structures', 'Web Systems', 'Algorithms'],
     careerGoal: overrides?.careerGoal || 'Crack Tier-1 Product Engineering Campus Placement',
     completedAssessment: false,
     learningStyle: 'Project-Driven',

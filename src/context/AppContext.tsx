@@ -95,21 +95,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Automatically purge any stale Pratham references and start fresh
-        if (
-          parsed.email === 'prakash111pratham@gmail.com' ||
-          parsed.name === 'Pratham' ||
-          String(parsed.email || '').includes('pratham')
-        ) {
-          localStorage.removeItem('careerpath_user');
-          localStorage.removeItem('careerpath_resume');
-          localStorage.removeItem('careerpath_study_goal');
-          localStorage.removeItem('careerpath_practice_sessions');
-          localStorage.removeItem('careerpath_apps');
-          localStorage.removeItem('careerpath_badges');
-          return SAMPLE_STUDENT_PROFILE;
+        if (parsed && parsed.email) {
+          return parsed;
         }
-        return parsed;
       } catch {
         return SAMPLE_STUDENT_PROFILE;
       }
@@ -127,10 +115,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.email === 'prakash111pratham@gmail.com' || parsed.fullName === 'Pratham') {
-          return SAMPLE_RESUME_DATA;
+        if (parsed && parsed.email) {
+          return parsed;
         }
-        return parsed;
       } catch {
         return SAMPLE_RESUME_DATA;
       }
@@ -210,7 +197,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [careerBadges]);
 
   const updateUser = (updates: Partial<UserProfile>) => {
-    setUser((prev) => ({ ...prev, ...updates }));
+    setUser((prev) => {
+      const updated = { ...prev, ...updates };
+      if (isAuthenticated && updated.id) {
+        syncUserProfileToFirestore(updated).catch(() => {});
+        fetch('/api/user/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: updated }),
+        }).catch(() => {});
+      }
+      return updated;
+    });
   };
 
   /**

@@ -12,6 +12,7 @@ import { FourYearGrowthDashboard } from '../components/FourYearGrowthDashboard';
 import { SkillHeatmap } from '../components/SkillHeatmap';
 import { DailyStudyGoal } from '../components/DailyStudyGoal';
 import { LevelProgression } from '../components/LevelProgression';
+import { UserProfileSection } from '../components/UserProfileSection';
 import {
   Sparkles,
   ArrowRight,
@@ -223,6 +224,9 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Embedded User Profile Management (Graduation Year, Branch, Academic Interests with Firestore Sync) */}
+      <UserProfileSection />
 
       {/* Level Progression & Milestone XP System */}
       <LevelProgression />
