@@ -151,8 +151,12 @@ export const AiChatbot: React.FC = () => {
           {/* Header */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-[#faf6ee] border border-amber-200/80 p-0.5 flex items-center justify-center shadow-xs overflow-hidden shrink-0">
+                <img
+                  src="/assets/aistudio/image_18d72958.png"
+                  alt="YUKTI Logo"
+                  className="w-full h-full object-contain rounded-lg"
+                />
               </div>
               <div>
                 <h3 className="text-sm font-extrabold flex items-center gap-1.5">

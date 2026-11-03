@@ -63,10 +63,10 @@ export const Navbar: React.FC = () => {
               onClick={() => handleNavClick('dashboard')}
               className="flex items-center gap-2.5 text-left group cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-orange-600 p-1 flex items-center justify-center shadow-md shadow-orange-500/25 group-hover:scale-105 transition-transform overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-[#faf6ee] border border-amber-200/90 p-0.5 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-amber-400 transition-all overflow-hidden shrink-0">
                 <img
-                  src="/assets/aistudio/image_ceca956a.png"
-                  alt="YUKTI Logo Icon"
+                  src="/assets/aistudio/image_18d72958.png"
+                  alt="YUKTI Logo"
                   className="w-full h-full object-contain rounded-lg"
                 />
               </div>

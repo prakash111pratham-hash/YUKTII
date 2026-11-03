@@ -70,9 +70,9 @@ function AppContent() {
       <footer className="bg-white/90 border-t border-orange-200/80 py-8 px-4 text-xs text-slate-600 print:hidden mt-12">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-600 p-1 flex items-center justify-center shadow-md shadow-orange-500/20 overflow-hidden shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#faf6ee] border border-amber-200/90 p-0.5 flex items-center justify-center shadow-xs overflow-hidden shrink-0">
               <img
-                src="/assets/aistudio/image_ceca956a.png"
+                src="/assets/aistudio/image_18d72958.png"
                 alt="YUKTI Logo"
                 className="w-full h-full object-contain rounded-lg"
               />

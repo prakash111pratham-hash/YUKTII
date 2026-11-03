@@ -736,9 +736,13 @@ export const AuthModal: React.FC = () => {
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/25">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="flex items-center gap-3.5 mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#faf6ee] border border-amber-200/90 p-1 flex items-center justify-center shadow-md shadow-amber-900/10 overflow-hidden shrink-0">
+            <img
+              src="/assets/aistudio/image_18d72958.png"
+              alt="YUKTI Logo"
+              className="w-full h-full object-contain rounded-xl"
+            />
           </div>
           <div>
             <h3 className="text-xl font-black text-slate-900 tracking-tight">YUKTI Account</h3>
