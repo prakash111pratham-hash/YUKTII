@@ -8,5 +8,12 @@
   "messagingSenderId": "79566361320",
   "measurementId": "",
   "oAuthClientId": "79566361320-5il2u5rv3tu8ahpeiodki2ga09s84eg2.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "recaptchaSiteKey": "",
+  "hashConfig": {
+    "algorithm": "SCRYPT",
+    "base64SignerKey": "KTL5iug8CzyGGigWNaC/DXgTitBcay35mMqgF5owDl2LNwgJ55gUyJnNZNt68mnmULY3E5Hkig9oFGEesSA+gg==",
+    "base64SaltSeparator": "Bw==",
+    "rounds": 8,
+    "memCost": 14
+  }
 }

@@ -19,6 +19,7 @@
         "isPhoneVerified": { "type": "boolean" },
         "xp": { "type": "number" },
         "streakDays": { "type": "number" },
+        "onboardingCompleted": { "type": "boolean" },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },

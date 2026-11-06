@@ -121,29 +121,32 @@ export const Navbar: React.FC = () => {
             {/* Notification Bell Component */}
             <NotificationBell />
 
-            {/* Student Profile Quick Links */}
-            <div className="hidden md:flex items-center gap-1">
-              <a
-                href={user.email ? `mailto:${user.email}` : '#'}
-                className="p-1.5 rounded-lg border border-orange-200 text-slate-700 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-                title={`Email: ${user.email || 'Contact Student'}`}
-              >
-                <Mail className="w-4 h-4" />
-              </a>
-            </div>
+            {/* Student Profile Quick Links & Streak/XP */}
+            {isAuthenticated && user && (
+              <>
+                <div className="hidden md:flex items-center gap-1">
+                  <a
+                    href={user.email ? `mailto:${user.email}` : '#'}
+                    className="p-1.5 rounded-lg border border-orange-200 text-slate-700 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+                    title={`Email: ${user.email || 'Contact Student'}`}
+                  >
+                    <Mail className="w-4 h-4" />
+                  </a>
+                </div>
 
-            {/* Streak & XP */}
-            <div className="hidden xl:flex items-center gap-2 bg-orange-100/60 px-2.5 py-1 rounded-full border border-orange-200">
-              <div className="flex items-center gap-1 text-xs font-bold text-orange-700" title="Daily Practice Streak">
-                <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
-                <span>{user.streakDays}d</span>
-              </div>
-              <div className="w-[1px] h-3 bg-orange-300" />
-              <div className="flex items-center gap-1 text-xs font-bold text-orange-800" title="Experience Points">
-                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span>{user.xp} XP</span>
-              </div>
-            </div>
+                <div className="hidden xl:flex items-center gap-2 bg-orange-100/60 px-2.5 py-1 rounded-full border border-orange-200">
+                  <div className="flex items-center gap-1 text-xs font-bold text-orange-700" title="Daily Practice Streak">
+                    <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
+                    <span>{user.streakDays || 0}d</span>
+                  </div>
+                  <div className="w-[1px] h-3 bg-orange-300" />
+                  <div className="flex items-center gap-1 text-xs font-bold text-orange-800" title="Experience Points">
+                    <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                    <span>{user.xp || 0} XP</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Bilingual Hindi/English Switcher */}
             <button
@@ -157,7 +160,7 @@ export const Navbar: React.FC = () => {
             </button>
 
             {/* User Profile & Auth Pill */}
-            {isAuthenticated ? (
+            {isAuthenticated && user ? (
               <button
                 type="button"
                 onClick={() => setIsAuthModalOpen(true)}
@@ -169,7 +172,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold text-slate-800 hidden sm:inline group-hover:text-orange-600 transition-colors">
-                    {user.name.split(' ')[0]}
+                    {user.name ? user.name.split(' ')[0] : 'Profile'}
                   </span>
                   {user.isPhoneVerified && (
                     <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mobile Verified" />
@@ -237,14 +240,16 @@ export const Navbar: React.FC = () => {
             })}
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-orange-100 text-xs text-slate-500">
-            <span>Student: {user.name} ({user.currentYear})</span>
-            <div className="flex items-center gap-2">
-              <span className="text-orange-600 font-bold">🔥 {user.streakDays}d Streak</span>
-              <span>•</span>
-              <span className="text-amber-600 font-bold">⚡ {user.xp} XP</span>
+          {isAuthenticated && user && (
+            <div className="flex items-center justify-between pt-3 border-t border-orange-100 text-xs text-slate-500">
+              <span>Student: {user.name} ({user.currentYear})</span>
+              <div className="flex items-center gap-2">
+                <span className="text-orange-600 font-bold">🔥 {user.streakDays || 0}d Streak</span>
+                <span>•</span>
+                <span className="text-amber-600 font-bold">⚡ {user.xp || 0} XP</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </header>

@@ -4,6 +4,7 @@ export type BranchCode = 'CSE' | 'IT' | 'AIML' | 'ECE' | 'EEE' | 'MECH' | 'CIVIL
 
 export interface UserProfile {
   id: string;
+  uid?: string;
   name: string;
   email: string;
   avatar?: string;
@@ -26,6 +27,7 @@ export interface UserProfile {
   completedAssessment: boolean;
   learningStyle?: 'Visual / Practical' | 'Analytical / Theoretical' | 'Project-Driven' | 'Collaborative';
   graduationYear?: number | string;
+  onboardingCompleted?: boolean;
 }
 
 export type EngineeringDomain = 'dsa' | 'system_design' | 'core_cs' | 'aptitude' | 'gd_verbal';

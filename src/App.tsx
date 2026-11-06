@@ -14,10 +14,21 @@ import { TpoAdminView } from './views/TpoAdminView';
 import { WorkspaceHubView } from './views/WorkspaceHubView';
 import { AiChatbot } from './components/AiChatbot';
 import { AuthModal } from './components/AuthModal';
+import { OnboardingProfileWizard } from './components/OnboardingProfileWizard';
 import { Compass, Sparkles, Heart } from 'lucide-react';
 
 function AppContent() {
-  const { activeTab, setActiveTab, setShowUniqueFeaturesModal } = useApp();
+  const {
+    activeTab,
+    setActiveTab,
+    setShowUniqueFeaturesModal,
+    isAuthenticated,
+    user,
+    firebaseUser,
+    loading,
+    setIsAuthModalOpen,
+    updateUser,
+  } = useApp();
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -44,6 +55,74 @@ function AppContent() {
     }
   };
 
+  // 1. Loading screen while Firebase checks auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf5ef] text-slate-800">
+        <div className="w-16 h-16 rounded-2xl bg-[#faf6ee] border border-amber-200/90 p-2.5 flex items-center justify-center shadow-lg shadow-amber-900/10 animate-pulse">
+          <img
+            src="/assets/aistudio/image_18d72958.png"
+            alt="YUKTI Logo"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-orange-700 tracking-wider uppercase">
+          <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+          <span>Authenticating Session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Enforce Zero-State / Redirect Gate:
+  // If user is null and loading is false, render the Sign In / Auth Modal by default rather than showing the dashboard with placeholder user details like Pratham Prakash.
+  const isUserAuthenticated = isAuthenticated && (Boolean(firebaseUser) || (Boolean(user) && Boolean(user.email) && user.id !== ''));
+  if (!isUserAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#faf5ef] text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
+        <Navbar />
+
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 rounded-3xl bg-[#faf6ee] border border-amber-200/90 p-2.5 flex items-center justify-center shadow-xl shadow-amber-900/10 mb-6">
+            <img
+              src="/assets/aistudio/image_18d72958.png"
+              alt="YUKTI Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200 mb-4 uppercase tracking-wider">
+            Zero-State Access Gate · Authentication Required
+          </span>
+
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-3">
+            Welcome to YUKTI Student Platform
+          </h1>
+
+          <p className="text-sm sm:text-base text-slate-600 max-w-xl mb-8 leading-relaxed">
+            Please sign in with your real mobile phone number (OTP) or student email to access your personal 4-year engineering roadmap, placement mock tests, and verified academic profile.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setIsAuthModalOpen(true)}
+            className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-sm shadow-lg shadow-orange-500/25 hover:shadow-xl hover:scale-102 transition-all cursor-pointer"
+          >
+            <span>Sign In / Register with Phone OTP or Email</span>
+            <Sparkles className="w-4 h-4 text-amber-200" />
+          </button>
+        </main>
+
+        {/* Auth Modal rendered by default for unauthenticated visitors */}
+        <AuthModal forceOpen={true} />
+
+        <footer className="bg-white/90 border-t border-orange-200/80 py-6 px-4 text-xs text-slate-500 text-center">
+          YUKTI · Choose · Build · Get Placed · Secured by Firebase Authentication
+        </footer>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#faf5ef] text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
       {/* Navigation */}
@@ -62,6 +141,14 @@ function AppContent() {
 
       {/* Email & Phone OTP Authentication Modal */}
       <AuthModal />
+
+      {/* Onboarding Profile Wizard triggered for new users after their first successful Firebase authentication */}
+      {isUserAuthenticated && !user?.onboardingCompleted && (
+        <OnboardingProfileWizard
+          isOpen={true}
+          onClose={() => updateUser({ onboardingCompleted: true })}
+        />
+      )}
 
       {/* Floating Gemini AI Chatbot with Search Grounding */}
       <AiChatbot />

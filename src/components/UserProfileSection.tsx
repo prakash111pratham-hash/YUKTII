@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BranchCode, UserYear } from '../types';
-import { updateUserProfileInFirestore, syncUserProfileToFirestore } from '../lib/firebase';
+import { auth, updateUserProfileInFirestore, syncUserProfileToFirestore } from '../lib/firebase';
 import {
   GraduationCap,
   Sparkles,
@@ -22,6 +22,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { OnboardingProfileWizard } from './OnboardingProfileWizard';
 
 const BRANCH_OPTIONS: { code: BranchCode; label: string; full: string; color: string }[] = [
   { code: 'CSE', label: 'CSE', full: 'Computer Science & Engineering', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -63,20 +64,21 @@ export const UserProfileSection: React.FC = () => {
   const { user, updateUser, isAuthenticated, setIsAuthModalOpen } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [firestoreStatus, setFirestoreStatus] = useState<'synced' | 'saving' | 'ready'>('ready');
 
   // Editable Form States
-  const [name, setName] = useState(user.name || 'Pratham Prakash');
-  const [branch, setBranch] = useState<BranchCode>(user.selectedBranch || 'CSE');
-  const [gradYear, setGradYear] = useState<string>(String(user.graduationYear || '2028'));
-  const [academicYear, setAcademicYear] = useState<UserYear>(user.currentYear || '1st Year');
-  const [college, setCollege] = useState(user.college || 'National Institute of Technology (NIT)');
-  const [targetLpa, setTargetLpa] = useState<number>(user.targetLPA || 18);
-  const [careerGoal, setCareerGoal] = useState(user.careerGoal || 'Secure Tier-1 Product Engineering Offer (18+ LPA)');
+  const [name, setName] = useState(user?.name || '');
+  const [branch, setBranch] = useState<BranchCode>(user?.selectedBranch || 'CSE');
+  const [gradYear, setGradYear] = useState<string>(String(user?.graduationYear || '2028'));
+  const [academicYear, setAcademicYear] = useState<UserYear>(user?.currentYear || '1st Year');
+  const [college, setCollege] = useState(user?.college || 'National Institute of Technology (NIT)');
+  const [targetLpa, setTargetLpa] = useState<number>(user?.targetLPA || 18);
+  const [careerGoal, setCareerGoal] = useState(user?.careerGoal || 'Secure Tier-1 Product Engineering Offer (18+ LPA)');
   const [interests, setInterests] = useState<string[]>(
-    user.interests && user.interests.length > 0
+    user?.interests && user.interests.length > 0
       ? user.interests
       : ['Data Structures & Algorithms', 'System Design & Microservices', 'Generative AI & LLMs']
   );
@@ -148,12 +150,17 @@ export const UserProfileSection: React.FC = () => {
       updateUser(updatedProfile);
 
       // 2. Direct Sync to Firebase Firestore document: /users/{userId}
+      const targetUid = user?.uid || user?.id || auth.currentUser?.uid;
       const syncObj = {
         ...user,
         ...updatedProfile,
+        id: targetUid || 'user',
+        uid: targetUid || 'user',
       };
-      await syncUserProfileToFirestore(syncObj);
-      await updateUserProfileInFirestore(user.id, updatedProfile);
+      if (targetUid) {
+        await syncUserProfileToFirestore(syncObj as any);
+        await updateUserProfileInFirestore(targetUid, updatedProfile);
+      }
 
       // 3. Sync to Cloud SQL backend
       await fetch('/api/user/sync', {
@@ -232,6 +239,16 @@ export const UserProfileSection: React.FC = () => {
             <Database className="w-3.5 h-3.5 text-orange-600" />
             <span>Firestore Linked</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 shadow-2xs"
+            title="Launch step-by-step guided profile wizard"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+            <span>Guided Setup Wizard</span>
+          </button>
 
           <button
             type="button"
@@ -320,7 +337,7 @@ export const UserProfileSection: React.FC = () => {
               Updating graduation year, engineering branch, and academic interests persists directly to your Firestore document:
             </span>
             <code className="font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-orange-200 text-slate-700">
-              users/{user.id}
+              users/{user?.uid || user?.id || 'uid'}
             </code>
           </div>
 
@@ -562,6 +579,14 @@ export const UserProfileSection: React.FC = () => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Guided Multi-Step Profile Wizard Modal */}
+      {showWizard && (
+        <OnboardingProfileWizard
+          isOpen={showWizard}
+          onClose={() => setShowWizard(false)}
+        />
       )}
     </div>
   );

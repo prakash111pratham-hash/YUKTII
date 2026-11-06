@@ -22,8 +22,12 @@ import {
   createFreshStudyGoal,
   createFreshBadges,
 } from '../data/sampleProfileData';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import {
+  auth,
   syncUserProfileToFirestore,
+  updateUserProfileInFirestore,
+  getUserProfileFromFirestore,
   syncDailyGoalToFirestore,
   syncPracticeLogToFirestore,
   logout,
@@ -32,7 +36,10 @@ import confetti from 'canvas-confetti';
 
 interface AppContextType {
   isAuthenticated: boolean;
+  loading: boolean;
   user: UserProfile;
+  firebaseUser: FirebaseUser | null;
+  authUser: FirebaseUser | null;
   updateUser: (updates: Partial<UserProfile>) => void;
   loginUser: (userData: Partial<UserProfile>, isNew?: boolean) => void;
   logoutUser: () => void;
@@ -84,26 +91,83 @@ const defaultScores: AptitudeScores = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Authentication session state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const authState = localStorage.getItem('careerpath_auth_state');
-    return authState ? authState === 'true' : true;
-  });
+  // Authentication session state & Firebase Auth State Observer
+  const [user, setUser] = useState<UserProfile>(SAMPLE_STUDENT_PROFILE);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const [user, setUser] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('careerpath_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.email) {
-          return parsed;
+  // Active Auth State Observer (onAuthStateChanged)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setFirebaseUser(currentUser);
+      if (currentUser) {
+        setIsAuthenticated(true);
+        // Dynamically fetch profile from /users/{userId} using currentUser.uid
+        const remoteProfile = await getUserProfileFromFirestore(currentUser.uid).catch(() => null);
+        const derivedName =
+          currentUser.displayName ||
+          (currentUser.email ? currentUser.email.split('@')[0] : 'Engineering Student');
+
+        const activeUser: UserProfile = {
+          id: currentUser.uid,
+          uid: currentUser.uid,
+          name: remoteProfile?.name || currentUser.displayName || derivedName,
+          email: currentUser.email || remoteProfile?.email || '',
+          phoneNumber: currentUser.phoneNumber || remoteProfile?.phoneNumber || '',
+          isPhoneVerified: Boolean(currentUser.phoneNumber || remoteProfile?.isPhoneVerified),
+          isEmailVerified: Boolean(currentUser.emailVerified),
+          currentYear: (remoteProfile?.currentYear as any) || '1st Year',
+          graduationYear: remoteProfile?.graduationYear || '2028',
+          college: remoteProfile?.college || 'National Institute of Technology (NIT)',
+          selectedBranch: (remoteProfile?.selectedBranch as any) || 'CSE',
+          targetLPA: remoteProfile?.targetLPA || 18,
+          cgpa: remoteProfile?.cgpa || 8.5,
+          interests: remoteProfile?.interests || ['Coding', 'Web Systems', 'Algorithms'],
+          xp: remoteProfile?.xp ?? 0,
+          streakDays: remoteProfile?.streakDays ?? 0,
+          badges: remoteProfile?.badges || [],
+          completedAssessment: Boolean(remoteProfile?.completedAssessment),
+          careerGoal: remoteProfile?.careerGoal || '',
+          onboardingCompleted: remoteProfile?.onboardingCompleted ?? false,
+        };
+
+        setUser(activeUser);
+        localStorage.setItem('careerpath_auth_state', 'true');
+        localStorage.setItem('careerpath_user', JSON.stringify(activeUser));
+      } else {
+        // Will be null if not logged in
+        // Check if there's an active verified custom session from phone/email OTP
+        const storedAuth = localStorage.getItem('careerpath_auth_state');
+        const storedUser = localStorage.getItem('careerpath_user');
+        if (storedAuth === 'true' && storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (
+              parsed &&
+              parsed.email &&
+              parsed.id &&
+              parsed.id !== 'usr-pratham' &&
+              parsed.id !== 'guest'
+            ) {
+              setUser(parsed);
+              setIsAuthenticated(true);
+              setLoading(false);
+              return;
+            }
+          } catch {}
         }
-      } catch {
-        return SAMPLE_STUDENT_PROFILE;
+
+        // Clean unauthenticated zero-state
+        setUser(SAMPLE_STUDENT_PROFILE);
+        setIsAuthenticated(false);
+        localStorage.setItem('careerpath_auth_state', 'false');
       }
-    }
-    return SAMPLE_STUDENT_PROFILE;
-  });
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [scores, setScores] = useState<AptitudeScores>(() => {
     const saved = localStorage.getItem('careerpath_scores');
@@ -157,15 +221,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [isAuthenticated]);
 
   useEffect(() => {
-    localStorage.setItem('careerpath_user', JSON.stringify(user));
-    if (isAuthenticated) {
-      syncUserProfileToFirestore(user).catch(() => {});
-      // Also sync to Cloud SQL backend
-      fetch('/api/user/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user }),
-      }).catch(() => {});
+    if (user) {
+      localStorage.setItem('careerpath_user', JSON.stringify(user));
+      const targetUid = user.uid || user.id || auth.currentUser?.uid;
+      if (isAuthenticated && targetUid && targetUid !== 'guest') {
+        syncUserProfileToFirestore(user).catch(() => {});
+        // Also sync to Cloud SQL backend
+        fetch('/api/user/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user }),
+        }).catch(() => {});
+      }
+    } else {
+      localStorage.removeItem('careerpath_user');
     }
   }, [user, isAuthenticated]);
 
@@ -187,10 +256,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('careerpath_study_goal', JSON.stringify(studyGoal));
-    if (isAuthenticated && user?.id) {
-      syncDailyGoalToFirestore(user.id, studyGoal).catch(() => {});
+    const targetUid = auth.currentUser?.uid || user?.uid || user?.id;
+    if (isAuthenticated && targetUid && targetUid !== 'guest') {
+      syncDailyGoalToFirestore(targetUid, studyGoal).catch(() => {});
     }
-  }, [studyGoal, user.id, isAuthenticated]);
+  }, [studyGoal, user?.id, user?.uid, isAuthenticated]);
 
   useEffect(() => {
     localStorage.setItem('careerpath_badges', JSON.stringify(careerBadges));
@@ -198,8 +268,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateUser = (updates: Partial<UserProfile>) => {
     setUser((prev) => {
-      const updated = { ...prev, ...updates };
-      if (isAuthenticated && updated.id) {
+      const targetUid = prev.uid || prev.id || auth.currentUser?.uid || `usr-${Date.now()}`;
+      const updated: UserProfile = {
+        ...prev,
+        ...updates,
+        id: targetUid,
+        uid: targetUid,
+      };
+      if (isAuthenticated && targetUid && targetUid !== 'guest') {
         syncUserProfileToFirestore(updated).catch(() => {});
         fetch('/api/user/sync', {
           method: 'POST',
@@ -217,41 +293,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
    * 0 XP, 0 Streak, clean roadmap, personalized resume, fresh goals, and no repeated data!
    */
   const loginUser = (userData: Partial<UserProfile>, isNew: boolean = false) => {
-    const isDifferentEmail = Boolean(
-      userData.email && userData.email.toLowerCase() !== (user.email || '').toLowerCase()
-    );
+    const targetUid = auth.currentUser?.uid || userData.uid || userData.id || `usr-${Date.now()}`;
+    const freshUser = createFreshUserProfile({
+      ...userData,
+      id: targetUid,
+      uid: targetUid,
+      onboardingCompleted: isNew ? false : (userData.onboardingCompleted ?? false),
+    });
+    const freshResume = createFreshResumeData(freshUser);
+    const freshGoal = createFreshStudyGoal();
+    const freshBadgesList = createFreshBadges();
 
-    if (isNew || isDifferentEmail) {
-      // START FRESH FROM ZERO FOR ANY NEW OR SWITCHED USER
-      const freshUser = createFreshUserProfile(userData);
-      const freshResume = createFreshResumeData(freshUser);
-      const freshGoal = createFreshStudyGoal();
-      const freshBadgesList = createFreshBadges();
+    setUser(freshUser);
+    setResumeData(freshResume);
+    setStudyGoal(freshGoal);
+    setPracticeSessions([]); // Zero practice sessions initially
+    setApplications([]); // Zero applications initially
+    setCareerBadges(freshBadgesList); // All badges locked
+    setIsAuthenticated(true);
 
-      setUser(freshUser);
-      setResumeData(freshResume);
-      setStudyGoal(freshGoal);
-      setPracticeSessions([]); // Zero practice sessions initially
-      setApplications([]); // Zero applications initially
-      setCareerBadges(freshBadgesList); // All badges locked
-      setIsAuthenticated(true);
+    // Save user-scoped backup
+    localStorage.setItem('careerpath_user', JSON.stringify(freshUser));
+    localStorage.setItem('careerpath_resume', JSON.stringify(freshResume));
+    localStorage.setItem('careerpath_study_goal', JSON.stringify(freshGoal));
+    localStorage.setItem('careerpath_practice_sessions', JSON.stringify([]));
+    localStorage.setItem('careerpath_apps', JSON.stringify([]));
+    localStorage.setItem('careerpath_badges', JSON.stringify(freshBadgesList));
+    localStorage.setItem('careerpath_auth_state', 'true');
 
-      // Save user-scoped backup
-      localStorage.setItem('careerpath_user', JSON.stringify(freshUser));
-      localStorage.setItem('careerpath_resume', JSON.stringify(freshResume));
-      localStorage.setItem('careerpath_study_goal', JSON.stringify(freshGoal));
-      localStorage.setItem('careerpath_practice_sessions', JSON.stringify([]));
-      localStorage.setItem('careerpath_apps', JSON.stringify([]));
-      localStorage.setItem('careerpath_badges', JSON.stringify(freshBadgesList));
-      localStorage.setItem('careerpath_auth_state', 'true');
-
-      console.log(`[USER SESSION] Started fresh from zero for: ${freshUser.name} (${freshUser.email})`);
-    } else {
-      // Update existing session
-      setUser((prev) => ({ ...prev, ...userData }));
-      setIsAuthenticated(true);
-      localStorage.setItem('careerpath_auth_state', 'true');
+    if (targetUid && targetUid !== 'guest') {
+      syncUserProfileToFirestore(freshUser).catch(() => {});
     }
+
+    console.log(`[USER SESSION] Started fresh from zero for: ${freshUser.name} (${freshUser.email})`);
   };
 
   /**
@@ -265,33 +339,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Firebase logout notice:', e);
     }
     setIsAuthenticated(false);
+    setFirebaseUser(null);
+    setUser(SAMPLE_STUDENT_PROFILE);
     localStorage.setItem('careerpath_auth_state', 'false');
-
-    // Reset current active profile to clean guest state
-    const guestUser: UserProfile = {
-      id: 'guest',
-      name: 'Guest Student',
-      email: '',
-      currentYear: '1st Year',
-      college: 'Engineering College',
-      selectedBranch: 'CSE',
-      targetLPA: 14,
-      cgpa: 8.0,
-      xp: 0,
-      streakDays: 0,
-      badges: [],
-      interests: [],
-      careerGoal: 'Sign in to configure your target package and career roadmap',
-      completedAssessment: false,
-      isPhoneVerified: false,
-      isEmailVerified: false,
-    };
-    setUser(guestUser);
-    setResumeData(createFreshResumeData(guestUser));
-    setStudyGoal(createFreshStudyGoal());
-    setPracticeSessions([]);
-    setApplications([]);
-    setCareerBadges(createFreshBadges());
 
     localStorage.removeItem('careerpath_user');
     localStorage.removeItem('careerpath_resume');
@@ -299,10 +349,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('careerpath_practice_sessions');
     localStorage.removeItem('careerpath_apps');
     localStorage.removeItem('careerpath_badges');
+    localStorage.removeItem('firebase_id_token');
+    localStorage.removeItem('firebase_refresh_token');
+    localStorage.removeItem('firebase_uid');
+    localStorage.removeItem('firebase_email');
+    localStorage.removeItem('firebase_display_name');
 
     console.log('[USER SESSION] Signed out successfully.');
   };
-
 
   const addApplication = (app: ApplicationRecord) => {
     setApplications((prev) => [app, ...prev]);
@@ -318,7 +372,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const incrementXp = (amount: number, reason?: string) => {
     setUser((prev) => ({
       ...prev,
-      xp: prev.xp + amount,
+      xp: (prev.xp || 0) + amount,
     }));
   };
 
@@ -394,7 +448,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider
       value={{
         isAuthenticated,
+        loading,
         user,
+        firebaseUser,
+        authUser: firebaseUser,
         updateUser,
         loginUser,
         logoutUser,

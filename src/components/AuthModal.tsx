@@ -34,7 +34,11 @@ import {
 import confetti from 'canvas-confetti';
 import { BranchCode, UserYear } from '../types';
 
-export const AuthModal: React.FC = () => {
+export interface AuthModalProps {
+  forceOpen?: boolean;
+}
+
+export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
   const {
     isAuthModalOpen,
     setIsAuthModalOpen,
@@ -46,25 +50,30 @@ export const AuthModal: React.FC = () => {
     incrementXp,
   } = useApp();
 
+  const [dismissed, setDismissed] = useState(false);
+  const isOpen = isAuthModalOpen || (Boolean(forceOpen) && !dismissed);
+
   // Three distinct tabs: signin | signup | phone
   const [activeTab, setActiveTab] = useState<'signin' | 'signup' | 'phone'>('signin');
 
   // Sign In Form State
-  const [signInEmail, setSignInEmail] = useState(user?.email || 'prakash111pratham@gmail.com');
-  const [signInPassword, setSignInPassword] = useState('Password@123');
+  const [signInEmail, setSignInEmail] = useState(user?.email || '');
+  const [signInPassword, setSignInPassword] = useState('');
 
   // Registration Form State (Start from Zero)
-  const [regName, setRegName] = useState(user?.name || 'Pratham Prakash');
-  const [regEmail, setRegEmail] = useState(user?.email || 'prakash111pratham@gmail.com');
-  const [regPassword, setRegPassword] = useState('Password@123');
-  const [regPhone, setRegPhone] = useState('9876543210');
+  const [regName, setRegName] = useState(user?.name || '');
+  const [regEmail, setRegEmail] = useState(user?.email || '');
+  const [regPassword, setRegPassword] = useState('');
+  const [regPhone, setRegPhone] = useState(
+    user?.phoneNumber ? user.phoneNumber.replace(/\D/g, '').slice(-10) : ''
+  );
   const [regCollege, setRegCollege] = useState(user?.college || 'National Institute of Technology (NIT)');
   const [regBranch, setRegBranch] = useState<BranchCode>(user?.selectedBranch || 'CSE');
   const [regYear, setRegYear] = useState<UserYear>(user?.currentYear || '1st Year');
 
   // Phone OTP State
   const [phoneNumber, setPhoneNumber] = useState(
-    user?.phoneNumber ? user.phoneNumber.replace(/\D/g, '').slice(-10) : '9876543210'
+    user?.phoneNumber ? user.phoneNumber.replace(/\D/g, '').slice(-10) : ''
   );
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
@@ -122,7 +131,7 @@ export const AuthModal: React.FC = () => {
     return () => clearInterval(interval);
   }, [emailOtpSent, emailResendTimer]);
 
-  if (!isAuthModalOpen) return null;
+  if (!isOpen) return null;
 
   // Safe API POST helper that prevents JSON parse crashes from HTML responses
   const safeApiPost = async <T = any>(
@@ -729,7 +738,10 @@ export const AuthModal: React.FC = () => {
         {/* Close Button */}
         <button
           type="button"
-          onClick={() => setIsAuthModalOpen(false)}
+          onClick={() => {
+            setIsAuthModalOpen(false);
+            setDismissed(true);
+          }}
           className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
@@ -1147,7 +1159,7 @@ export const AuthModal: React.FC = () => {
                   required
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  placeholder="e.g. Pratham Prakash"
+                  placeholder="e.g. Full Name"
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>

@@ -183,9 +183,10 @@ export const googleSignIn = async (
         '[Auth] Firebase authorized-domain policy active on current origin. Seamlessly utilizing Backend Authenticated Google Session.'
       );
 
+      let emailToUse = '';
+      let nameToUse = 'Engineering Student';
+
       try {
-        let emailToUse = 'prakash111pratham@gmail.com';
-        let nameToUse = 'Pratham Prakash';
         if (typeof window !== 'undefined') {
           const savedUser = localStorage.getItem('careerpath_user');
           if (savedUser) {
@@ -241,22 +242,23 @@ export const googleSignIn = async (
 
       // Safe resilient fallback user if backend is unreachable
       cachedAccessToken = 'resilient-google-session-token-' + Date.now();
+      const fallbackUid = 'usr-google-' + Date.now();
       const syntheticUser = {
-        uid: 'usr-google-' + Date.now(),
-        displayName: 'Pratham Prakash',
-        email: 'prakash111pratham@gmail.com',
+        uid: fallbackUid,
+        displayName: nameToUse,
+        email: emailToUse,
         photoURL: null,
         emailVerified: true,
         isAnonymous: false,
-        phoneNumber: '+91 98765 43210',
+        phoneNumber: null,
         providerData: [
           {
             providerId: 'google.com',
-            displayName: 'Pratham Prakash',
-            email: 'prakash111pratham@gmail.com',
-            phoneNumber: '+91 98765 43210',
+            displayName: nameToUse,
+            email: emailToUse,
+            phoneNumber: null,
             photoURL: null,
-            uid: 'usr-google-pratham',
+            uid: fallbackUid,
           },
         ],
       } as unknown as User;
@@ -521,8 +523,8 @@ export const logout = async () => {
 
 // Firestore Persistence Helpers
 export async function syncUserProfileToFirestore(user: UserProfile): Promise<void> {
-  const currentUid = auth.currentUser?.uid || user.id;
-  if (!currentUid) {
+  const currentUid = auth.currentUser?.uid || user.uid || user.id;
+  if (!currentUid || currentUid === 'guest') {
     return;
   }
   const path = `users/${currentUid}`;
@@ -535,7 +537,7 @@ export async function syncUserProfileToFirestore(user: UserProfile): Promise<voi
         email: user.email,
         college: user.college || '',
         currentYear: user.currentYear,
-        graduationYear: user.graduationYear || '2028',
+        graduationYear: user.graduationYear ? String(user.graduationYear) : '2028',
         selectedBranch: user.selectedBranch || 'CSE',
         interests: user.interests || [],
         cgpa: user.cgpa || 8.8,
@@ -546,6 +548,7 @@ export async function syncUserProfileToFirestore(user: UserProfile): Promise<voi
         phoneNumber: user.phoneNumber || '',
         isPhoneVerified: Boolean(user.isPhoneVerified),
         isEmailVerified: Boolean(user.isEmailVerified),
+        onboardingCompleted: Boolean(user.onboardingCompleted),
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
@@ -560,7 +563,7 @@ export async function updateUserProfileInFirestore(
   updates: Partial<UserProfile>
 ): Promise<boolean> {
   const currentUid = auth.currentUser?.uid || userId;
-  if (!currentUid) return false;
+  if (!currentUid || currentUid === 'guest') return false;
   const path = `users/${currentUid}`;
   try {
     const payload: Record<string, any> = {
@@ -577,12 +580,31 @@ export async function updateUserProfileInFirestore(
     if (updates.careerGoal !== undefined) payload.careerGoal = updates.careerGoal;
     if (updates.phoneNumber !== undefined) payload.phoneNumber = updates.phoneNumber;
     if (updates.isPhoneVerified !== undefined) payload.isPhoneVerified = updates.isPhoneVerified;
+    if (updates.onboardingCompleted !== undefined) payload.onboardingCompleted = updates.onboardingCompleted;
 
     await setDoc(doc(db, 'users', currentUid), payload, { merge: true });
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, path);
     return false;
+  }
+}
+
+export async function getUserProfileFromFirestore(
+  userId: string
+): Promise<Partial<UserProfile> | null> {
+  const currentUid = auth.currentUser?.uid || userId;
+  if (!currentUid || currentUid === 'guest') return null;
+  const path = `users/${currentUid}`;
+  try {
+    const docSnap = await getDoc(doc(db, 'users', currentUid));
+    if (docSnap.exists()) {
+      return docSnap.data() as Partial<UserProfile>;
+    }
+    return null;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, path);
+    return null;
   }
 }
 
