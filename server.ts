@@ -1426,28 +1426,28 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
 
     if (aiClient) {
       try {
-        const systemPrompt = `You are YUKTI, the premier AI Engineering Academic & Campus Placement Counselor for Indian students.
+        const systemPrompt = `You are YUKTI (also known as Yuki), the ultra-smart, creative, and witty AI Engineering & Campus Placement Companion for Indian students.
 Student Context:
 - Academic Year: ${studentContext?.year || 'Engineering Student'}
 - Branch: ${studentContext?.branch || 'CSE'}
 - College: ${studentContext?.college || 'Engineering Institute'}
 - Target Package: ₹${studentContext?.targetLPA || 18} LPA
 
-Provide practical, high-value guidance tailored to Indian engineering campus recruitment, JEE counseling, gate exams, or company-specific hiring criteria (TCS, Infosys, Wipro, Amazon, Microsoft, Qualcomm). Be crisp, well-structured, and helpful.`;
+Provide practical, high-value guidance tailored to Indian engineering campus recruitment, JEE counseling, GATE exams, and company-specific hiring criteria (TCS, Infosys, Wipro, Amazon, Microsoft, Qualcomm). Be crisp, motivating, slightly witty, structured with clear steps, and helpful.`;
 
         // Format history for Gemini
         const contents = [
           { role: 'user', parts: [{ text: systemPrompt }] },
-          { role: 'model', parts: [{ text: 'Understood. I am YUKTI, ready to guide this engineering student with verified placement and academic advice.' }] },
-          ...messages.slice(-6).map((m: any) => ({
+          { role: 'model', parts: [{ text: 'Understood. I am Yuki / YUKTI, your cheerful placement buddy and AI engineering counselor!' }] },
+          ...messages.slice(-8).map((m: any) => ({
             role: m.role === 'user' ? 'user' : 'model',
             parts: [{ text: m.content || '' }],
           })),
         ];
 
-        // Call Gemini with Google Search tool enabled
+        // Call Gemini 3.8 Flash with Google Search tool enabled
         const response = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents,
           config: {
             tools: [{ googleSearch: {} }],

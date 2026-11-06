@@ -54,11 +54,16 @@ export interface CareerBadge {
   id: string;
   title: string;
   description: string;
-  category: 'Milestone' | 'Skill' | 'Habit' | 'Elite';
+  category: 'Milestone' | 'Skill' | 'Habit' | 'Elite' | 'Interview' | 'Practice' | 'Coursework';
   icon: string;
   unlocked: boolean;
   unlockedAt?: string;
   xpValue: number;
+  progressPercent?: number;
+  currentCount?: number;
+  targetCount?: number;
+  criteria?: string;
+  badgeSource?: 'practice' | 'interview' | 'dashboard' | 'resume';
 }
 
 export interface LevelTier {

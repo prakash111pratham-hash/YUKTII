@@ -231,6 +231,9 @@ export const DashboardView: React.FC = () => {
       {/* Level Progression & Milestone XP System */}
       <LevelProgression />
 
+      {/* Student Achievement Badges Showcase Component (Tracking Interview Streak, Mock Test Topper, Course Completion) */}
+      <Badges />
+
       {/* 4-Year Engineering Journey Visual Growth Dashboard (Recharts: Academic, Technical, Extracurricular) */}
       <FourYearGrowthDashboard />
 
@@ -346,9 +349,6 @@ export const DashboardView: React.FC = () => {
 
       {/* 30-Day Skill Growth Trajectory (Recharts Area Visualization) */}
       <SkillProgressionChart />
-
-      {/* Interactive Achievement Badges Component */}
-      <Badges />
 
       {/* 3D Procedural Engineering Branch Galaxy & Orbital System */}
       <ThreeCareerScene />

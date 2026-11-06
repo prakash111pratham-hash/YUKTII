@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 export const PracticeHubView: React.FC = () => {
-  const { user, incrementXp } = useApp();
+  const { user, incrementXp, unlockBadge } = useApp();
 
   // Sub-tabs: 'company-mocks' | 'coding-arena' | 'speech-lab'
   const [activeSubTab, setActiveSubTab] = useState<'company-mocks' | 'coding-arena' | 'speech-lab'>('company-mocks');
@@ -180,6 +180,13 @@ export const PracticeHubView: React.FC = () => {
     setMockScore(scorePct);
     setMockSubmitted(true);
     incrementXp(150, `Completed ${selectedMock.companyName} mock test`);
+    
+    // Check and award Mock Test Topper badge
+    if (scorePct >= 80) {
+      unlockBadge('b-mock-topper');
+      unlockBadge('b-course-completion');
+    }
+
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
   };
 
@@ -202,6 +209,8 @@ export const PracticeHubView: React.FC = () => {
     const allPassed = results.every((r) => r.passed);
     if (allPassed) {
       incrementXp(100, `Solved ${selectedProblem.title}`);
+      unlockBadge('b-dsa-master');
+      unlockBadge('b-course-completion');
       confetti({ particleCount: 70, spread: 60 });
     }
   };

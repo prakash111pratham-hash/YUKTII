@@ -30,6 +30,7 @@ import {
   getUserProfileFromFirestore,
   syncDailyGoalToFirestore,
   syncPracticeLogToFirestore,
+  syncBadgeToFirestore,
   logout,
 } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -433,9 +434,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (b.id === badgeId && !b.unlocked) {
           confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
           incrementXp(b.xpValue, `Unlocked badge: ${b.title}`);
+
+          const targetUid = auth.currentUser?.uid || user?.uid || user?.id;
+          if (targetUid && targetUid !== 'guest') {
+            syncBadgeToFirestore(targetUid, {
+              id: b.id,
+              title: b.title,
+              description: b.description,
+              category: b.category,
+              icon: b.icon,
+              unlockedAt: new Date().toISOString(),
+            }).catch(() => {});
+          }
+
           return {
             ...b,
             unlocked: true,
+            progressPercent: 100,
             unlockedAt: 'Unlocked Today',
           };
         }

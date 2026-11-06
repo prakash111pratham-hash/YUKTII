@@ -1,55 +1,121 @@
-# Implementation Plan: User Profile Management & Real Mobile Authentication
+# Creative Dancing AI Buddy & Enhanced Student Achievement Badges System
 
-Integrate an embedded User Profile management section into the Dashboard overview for updating graduation year, engineering branch, and academic interests with real-time Firebase Firestore synchronization. Enhance phone authentication with combined Firebase Phone Auth and direct SMS OTP verification, and ensure a pristine fresh-start onboarding experience for every new student.
+A creative animated AI mascot that wanders, dances with humorous expressions, and provides Gemini 3.8 Flash guidance, paired with an achievement badge showcase tracking student milestones in the Practice and Interview hubs.
 
----
+## User Review & Critical Decisions
 
-## 1. User Profile Management Component (Embedded in Dashboard)
-- **Component**: Create `src/components/UserProfileCard.tsx` (modular and styled to match YUKTI's clean engineering aesthetics).
-- **Embedded Integration**: Mount the profile editor directly into the top of `src/views/DashboardView.tsx` with quick inline editing and expanded settings toggling.
-- **Editable Academic Fields**:
-  - **Graduation Year / Batch**: Selectable graduation years (2025, 2026, 2027, 2028, 2029) and synchronized academic year (1st Year to 4th Year).
-  - **Engineering Branch**: Standard Indian engineering branches (CSE, IT, ECE, EE, ME, Civil, AI/Data Science, etc.) with automatic curriculum roadmap recalculation.
-  - **Academic & Technical Interests**: Interactive tag selector with popular engineering domains (Algorithms, Full-Stack, System Design, AI/ML, Cloud Computing, Cyber Security, Robotics, etc.) plus a custom tag addition input.
-  - **Career Goal & Target LPA**: Direct editing of placement goals and target CTC package.
-- **Firestore Persistence**:
-  - Automatically persist updates to Firestore document `/users/{userId}` via `updateDoc`/`setDoc(..., { merge: true })`.
-  - Concurrently sync to Cloud SQL backend `/api/user/sync` and local React state in `AppContext`.
-  - Display immediate feedback toasts upon saving.
+> [!IMPORTANT]
+> The architectural direction below incorporates your confirmed preferences from Phase 1 interactive clarification:
+> - **Confirmed Chatbot Experience**: An interactive floating companion ("Yuki") that floats and wanders around the screen edges, reacts with funny facial expressions, executes dance modes (Breakdance, Robot Dance, Disco Wiggle), and seamlessly opens into the full Gemini 3.8 Flash multi-turn counseling chat.
+> - **Confirmed Badges Experience**: A visual achievement showcase on the main Dashboard featuring live progress bars, explicit unlock criteria, category filters, and confetti celebrations, tracking "Interview Streak", "Course Completion", "Mock Test Topper", and domain practice milestones connected with Firestore persistence.
 
 ---
 
-## 2. Combined Firebase Phone Auth & Direct OTP Authentication
-- **Firebase Phone Auth Integration**:
-  - Configure `RecaptchaVerifier` and `signInWithPhoneNumber` in `src/lib/firebase.ts` for native Firebase SMS OTP dispatch.
-  - Pair with backend direct SMS OTP verification in `server.ts` (`/api/auth/send-otp` & `/api/auth/verify-otp`) to guarantee delivery across all Indian mobile numbers (+91) without browser popup blocks.
-- **Real Mobile Number Verification Flow**:
-  - Validate 10-digit mobile number format with automatic +91 country prefixing.
-  - 6-digit OTP input with keyboard auto-navigation, countdown resend timer (45s), and auto-verification.
-  - Upon successful verification, award +100 XP, set `isPhoneVerified: true`, and persist the verified phone number to the student's Firestore profile.
+## 1. Overview & Core Concept
+
+1. **Creative Floating Dancing Chatbot Buddy ("Yuki")**:
+   - Instead of a static button or boring drawer, students are accompanied by an expressive, animated 2D mascot.
+   - **Playful Behaviors**: Idle floating, humorous edge wandering ("inspecting your code"), funny moments (giggling, blushing, dizzy spins, sunglasses cool pose), and user-triggered dance routines with particle notes.
+   - **Gemini 3.8 Flash Integration**: Clicking the buddy expands an AI counseling panel powered by `models/gemini-3.8-flash` with Google Search grounding, contextual placement advice, and conversation memory.
+   - **Freedom of Movement**: Draggable or autonomous wandering with a quiet "dock/sleep" toggle so it never blocks key workspace controls.
+
+2. **Student Achievement Badges System (`Badges.tsx`)**:
+   - Displayed directly on the **Dashboard Overview** as a premier visual token showcase.
+   - **Dynamic Tracking & Criteria**:
+     - **'Interview Streak'**: Consecutive days of AI mock interviews in the Mock Interview Studio.
+     - **'Course Completion'**: Completing core engineering modules across DSA, Web Systems, and System Design.
+     - **'Mock Test Topper'**: Attaining 90%+ score in TCS NQT, Infosys, or Company Mock Tests in the Practice Hub.
+     - **Complementary Badges**: Cognitive Spark, Code Warrior, Speech Virtuoso, ATS Optimizer.
+   - **Interactive Details**: Clicking any token opens an inspection modal with live criteria progress bars, XP reward attribution, and celebratory confetti.
+   - **Persistence**: Synced to Firebase Firestore subcollection `/users/{userId}/badges/{badgeId}` and local state.
 
 ---
 
-## 3. Fresh Start Protocol for Every New User
-- **Zero-State Guarantees**:
-  - Ensure all newly registered accounts start at **0 XP**, **0-day streak**, **0 hours logged**, and **empty practice sessions**.
-  - No dummy or mock user records (`Sreya Sengupta`, etc.) will ever appear on a new user's dashboard or resume.
-  - On account switch or logout, clean all cached localStorage sessions (`careerpath_user`, `careerpath_practice_sessions`, `careerpath_badges`, etc.) so new credentials never inherit prior state.
-- **Profile Initialization**:
-  - When a student registers or verifies their phone/email, automatically seed a personalized clean profile in Firestore with their entered name, phone, branch, and graduation year.
+## 2. User Experience & Visual Design
+
+### A. Creative Mascot Visual Identity & Animations
+- **Design Persona**: "Yuki", an origami-styled neon-gold cyber spirit inspired by the YUKTI sacred geometric emblem.
+- **Micro-Animations & Funny Moments**:
+  - *Idle Hover*: Gentle float with eye-blinks and floating sparkle dust.
+  - *Dance Modes*: Quick button or automatic celebration triggers:
+    - 🕺 *Disco Groove*: Hip-hop bounce with musical note particles.
+    - 🤖 *Robot Freeze*: Stiff mechanical head-tilts with funny soundwave visuals.
+    - 🌀 *Breakdance Spin*: 360-degree flip ending in sunglasses pose.
+  - *Edge Wander*: Smoothly glides along the bottom or side dock when idle, peeking out playfully.
+- **Top Bar & Anti-Slop Compliance**: The floating mascot sits above viewport z-index with zero-pill metadata discipline, WCAG-compliant contrast, and clean tooltips.
+
+### B. Badges Showcase Layout & Visual Architecture
+- **Dashboard Section**: Positioned prominently in `DashboardView.tsx` with a dual-level display:
+  - *Summary Ribbon*: Overall unlock counter (e.g. `4 of 8 Unlocked`), total badge XP, and category filter segmented controls (`All`, `Interview Hub`, `Practice Hub`, `Academic`).
+  - *Medallion Token Grid*: Distinctive circular/squircle tokens with metallic gradient borders (Bronze, Emerald, Amber Gold, Cosmic Indigo).
+  - *Lock State*: Locked tokens show clear grayscale glass with real-time percentage progress bars (`75%`, `2/3 Completed`) so students always know the exact next action to unlock.
+  - *Inspection Modal*: High-fidelity preview with animated confetti, achievement date, and direct CTA (e.g., "Take Mock Interview to Unlock").
 
 ---
 
-## 4. Firestore Blueprint & Verification
-- Update `firebase-blueprint.json` to include `graduationYear`, `interests`, `phoneNumber`, and `isPhoneVerified` in the `UserProfile` schema.
-- Update `firestore.rules` if necessary and deploy via `DeployRules`.
-- Verify compilation with `compile_applet` and test in the real browser.
+## 3. Key Product Decisions & Trade-Offs
+
+- **Autonomous Wandering with User Control**:
+  - *Decision*: Allow the dancing mascot to wander gently between designated dock stations at the screen edges, but provide a 1-click "Settle / Sleep" button and drag support so students never feel obstructed during coding or mock tests.
+  - *Why*: Balances humor and delight with distraction-free focus during exams.
+- **Real Engagement Calculation**:
+  - *Decision*: Wire badge progress directly to `AppContext` stores: `practiceSessions`, `scores`, `studyGoal`, and mock interview logs, persisting unlocked status to Firestore.
+  - *Why*: Ensures badges represent real accomplishments rather than static mocks.
+- **Model Choice (`models/gemini-3.8-flash`)**:
+  - *Decision*: Route all AI chat requests to `models/gemini-3.8-flash` via the server proxy `/api/ai/chat` with Google Search grounding.
+  - *Why*: Ultra-fast response latency (<1.5s) with high accuracy for Indian campus placement topics.
 
 ---
 
-## Verification Plan
-1. **Compilation & Linting**: Run `compile_applet` and `lint_applet` (`tsc --noEmit`) to verify 0 syntax or type errors.
-2. **Unit Tests**: Run `npx --yes tsx --test src/utils/scoring.test.ts src/utils/progression.test.ts` to confirm progression logic holds.
-3. **Interactive Profile Update Test**: Edit graduation year, branch, and add/remove academic interests in the Dashboard; verify instant UI update and Firestore sync.
-4. **Phone OTP Verification Test**: Test mobile number verification in the Auth modal and ensure `Phone Verified` badge appears with 100 XP awarded.
-5. **Fresh User Test**: Register a new student and verify that dashboard starts at 0 XP with a completely clean slate.
+## 4. Technical Architecture & Data Strategy
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                          User Interface                                │
+│                                                                        │
+│   ┌───────────────────────────┐      ┌─────────────────────────────┐   │
+│   │ Floating Dancing Mascot   │      │ DashboardView               │   │
+│   │ (Yuki Animated Chatbot)   │      │ ├── Hero Summary Banner     │   │
+│   │ ├── Dance Mode Triggers   │      │ ├── UserProfileSection      │   │
+│   │ ├── Edge Wander Engine    │      │ ├── LevelProgression        │   │
+│   │ └── Gemini 3.8 Chat Modal │      │ └── Badges Showcase         │   │
+│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
+└─────────────────┼───────────────────────────────────┼──────────────────┘
+                  │                                   │
+                  ▼                                   ▼
+┌──────────────────────────────────┐ ┌───────────────────────────────────┐
+│ AppContext / User State Store    │ │ PracticeHubView & MockInterview   │
+│ ├── user.badges: string[]        │ │ ├── Interview completed events    │
+│ ├── practiceSessions: Log[]      │ │ ├── Test scores (TCS NQT 90%+)    │
+│ └── unlockBadge(badgeId, xp)     │ │ └── Course milestone updates      │
+└─────────────────┬────────────────┘ └────────────────┬──────────────────┘
+                  │                                   │
+                  ▼                                   ▼
+┌──────────────────────────────────┐ ┌───────────────────────────────────┐
+│ Backend & AI Services (Express)  │ │ Firebase Firestore & Cloud SQL    │
+│ ├── POST /api/ai/chat            │ │ ├── /users/{userId}/badges/{id}   │
+│ │   └── gemini-3.8-flash (Search)│ │ └── /users/{userId} profile sync  │
+│ └── POST /api/user/sync          │ └───────────────────────────────────┘
+└──────────────────────────────────┘
+```
+
+### Component Implementation Steps
+
+1. **`src/components/AiChatbot.tsx` Enhancement**:
+   - Transform the launcher into an animated floating SVG/Canvas character with states: `idle`, `dancing`, `wandering`, `giggling`, `chatting`.
+   - Add dance selector controls (Breakdance, Robot, Disco) with rhythmic CSS keyframes and funny emoji bubbles.
+   - Add wander trajectory logic respecting screen viewport boundaries.
+   - Update `server.ts` to use `gemini-3.8-flash` for all chat turns.
+
+2. **`src/components/Badges.tsx` Comprehensive Overhaul**:
+   - Define canonical achievement catalog:
+     - `interview-streak`: 3-day consecutive mock interview streak in Interview Hub.
+     - `mock-test-topper`: Score 90%+ in TCS NQT, Infosys, or Core Mock in Practice Hub.
+     - `course-completion`: Complete 100% of branch milestone roadmap modules.
+     - `code-warrior`, `aptitude-ace`, `speech-virtuoso`, `ats-architect`.
+   - Real-time progress computation from `practiceSessions` and `scores`.
+   - Interactive modal with confetti burst and Firestore document write.
+
+3. **`src/views/DashboardView.tsx` Integration**:
+   - Ensure `Badges` component is prominently showcased right below the primary metrics cards.
+   - Real-time listener for newly unlocked achievements.

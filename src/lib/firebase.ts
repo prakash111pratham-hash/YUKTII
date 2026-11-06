@@ -704,3 +704,35 @@ export async function syncPracticeLogToFirestore(
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
+
+export async function syncBadgeToFirestore(
+  userId: string,
+  badge: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    icon: string;
+    unlockedAt?: string;
+  }
+): Promise<void> {
+  const currentUid = auth.currentUser?.uid || userId;
+  if (!currentUid || currentUid === 'guest') return;
+  const path = `users/${currentUid}/badges/${badge.id}`;
+  try {
+    await setDoc(
+      doc(db, 'users', currentUid, 'badges', badge.id),
+      {
+        id: badge.id,
+        title: badge.title,
+        description: badge.description,
+        category: badge.category,
+        icon: badge.icon,
+        unlockedAt: badge.unlockedAt || new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+  }
+}

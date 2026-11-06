@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const MockInterviewView: React.FC = () => {
-  const { user, incrementXp } = useApp();
+  const { user, incrementXp, unlockBadge } = useApp();
 
   const [activeRound, setActiveRound] = useState<'Technical' | 'HR' | 'Behavioral'>('Technical');
   const filteredQuestions = MOCK_INTERVIEW_QUESTIONS.filter((q) => q.round === activeRound);
@@ -64,6 +64,7 @@ export const MockInterviewView: React.FC = () => {
         });
       }
       incrementXp(75, 'Completed Mock Interview Answer');
+      unlockBadge('b-interview-streak');
       confetti({ particleCount: 50, spread: 60 });
     } catch (e) {
       setEvaluationResult({
