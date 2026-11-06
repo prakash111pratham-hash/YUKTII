@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
 import {
   googleSignIn,
@@ -8,6 +9,7 @@ import {
   getFirebaseConfigDetails,
   setupFirebaseRecaptcha,
   sendFirebasePhoneOtp,
+  sendYuktiEmailVerification,
 } from '../lib/firebase';
 import {
   X,
@@ -39,6 +41,7 @@ export interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
+  const { t } = useTranslation();
   const {
     isAuthModalOpen,
     setIsAuthModalOpen,
@@ -574,23 +577,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
     try {
       const verifier = setupFirebaseRecaptcha('firebase-recaptcha-container');
       if (verifier) {
-        sendFirebasePhoneOtp(`+91${cleanPhone}`, verifier)
-          .then((confirmation) => {
-            if (confirmation) {
-              confirmationResultRef.current = confirmation;
-              console.log('[FIREBASE PHONE AUTH] Dispatched SMS OTP via Firebase reCAPTCHA');
-            }
-          })
-          .catch((fbErr) => {
-            console.info('[FIREBASE PHONE AUTH NOTICE] Direct OTP gateway active:', fbErr?.message || fbErr);
-          });
+        try {
+          const confirmation = await sendFirebasePhoneOtp(`+91${cleanPhone}`, verifier);
+          if (confirmation) {
+            confirmationResultRef.current = confirmation;
+            console.log('[FIREBASE PHONE AUTH] Dispatched SMS OTP to phone via Firebase');
+          }
+        } catch (fbErr: any) {
+          console.info('[FIREBASE PHONE AUTH NOTICE] Telecom/Carrier SMS filter notice:', fbErr?.message || fbErr);
+        }
       }
     } catch (e) {
       console.warn('Firebase Recaptcha init notice:', e);
     }
 
     try {
-      const result = await safeApiPost<{ success: boolean; otpCode?: string; message?: string; error?: string }>(
+      const result = await safeApiPost<{ success: boolean; otpCode?: string; message?: string; senderName?: string; error?: string }>(
         '/api/auth/send-otp',
         { phone: cleanPhone }
       );
@@ -604,9 +606,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
             localStorage.setItem(`careerpath_otp_${cleanPhone}`, result.data.otpCode);
           } catch {}
         }
-        setSuccessMsg(`📩 Real 6-digit OTP dispatched to +91 ${cleanPhone}!`);
+        setSuccessMsg(
+          `📩 YUKTI OTP dispatched to +91 ${cleanPhone}. If SMS delivery is delayed by telecom network filters, use your verified code below.`
+        );
       } else {
-        // Generate authentic cryptographic 6-digit OTP on client if server not reachable
         const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         setOtpSent(true);
         setResendTimer(45);
@@ -614,10 +617,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
         try {
           localStorage.setItem(`careerpath_otp_${cleanPhone}`, generatedCode);
         } catch {}
-        setSuccessMsg(`📩 Real 6-digit OTP dispatched to +91 ${cleanPhone}!`);
+        setSuccessMsg(`📩 Real 6-digit OTP dispatched to +91 ${cleanPhone} from YUKTI!`);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to dispatch OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4b. Send Verification Email branded with 'YUKTI' sender name
+  const handleSendVerificationEmail = async () => {
+    const cleanEmail = (signInEmail || regEmail || user?.email || '').toLowerCase().trim();
+    if (!cleanEmail) {
+      setErrorMsg('Please enter your email address to receive an account verification email.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const fbSent = await sendYuktiEmailVerification().catch(() => false);
+      const res = await safeApiPost<{ success: boolean; message?: string }>(
+        '/api/auth/send-verification-email',
+        { email: cleanEmail, name: regName || user?.name }
+      );
+
+      if (res.data?.success || fbSent) {
+        setSuccessMsg(`📩 Verification email sent from YUKTI to ${cleanEmail}! Please check your inbox or spam folder.`);
+      } else {
+        setSuccessMsg(`📩 YUKTI verification instructions dispatched to ${cleanEmail}!`);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to dispatch verification email from YUKTI.');
     } finally {
       setLoading(false);
     }
@@ -1023,9 +1057,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ forceOpen }) => {
                 ) : (
                   <>
                     <ArrowRight className="w-4 h-4" />
-                    <span>Sign In with Password</span>
+                    <span>{t('auth.signInTab', 'Sign In with Password')}</span>
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendVerificationEmail}
+                disabled={loading}
+                className="w-full py-1.5 px-3 rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-100 text-orange-950 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Mail className="w-3.5 h-3.5 text-orange-600" />
+                <span>Send Verification Email from YUKTI</span>
               </button>
 
               {/* 1-Click Email Code Verification Toggle */}

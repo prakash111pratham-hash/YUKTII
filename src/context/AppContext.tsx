@@ -226,6 +226,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (user) {
       localStorage.setItem('careerpath_user', JSON.stringify(user));
       const targetUid = user.uid || user.id || auth.currentUser?.uid;
+      if (targetUid) {
+        localStorage.setItem(`careerpath_user_${targetUid}`, JSON.stringify(user));
+      }
       if (isAuthenticated && targetUid && targetUid !== 'guest') {
         syncUserProfileToFirestore(user).catch(() => {});
         // Also sync to Cloud SQL backend
@@ -291,22 +294,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   /**
    * Log in or register a user:
-   * When any user logs in, completely initialize data to start fresh from ZERO:
-   * 0 XP, 0 Streak, clean roadmap, personalized resume, fresh goals, and no repeated data!
+   * When any user logs in:
+   * - If returning user: restores their saved data from Firestore / localStorage
+   * - If new user: starts fresh from ZERO (0% progress, 0 XP, 0 streak, all 0 scores)
+   * And permanently saves their data!
    */
   const loginUser = (userData: Partial<UserProfile>, isNew: boolean = false) => {
     const targetUid = auth.currentUser?.uid || userData.uid || userData.id || `usr-${Date.now()}`;
+
+    // Check for existing saved profile for this user if not an explicit new signup
+    const savedUserJson = localStorage.getItem(`careerpath_user_${targetUid}`);
+    if (savedUserJson && !isNew) {
+      try {
+        const parsed = JSON.parse(savedUserJson);
+        if (parsed && parsed.email) {
+          const restoredUser: UserProfile = {
+            ...createFreshUserProfile(userData),
+            ...parsed,
+            id: targetUid,
+            uid: targetUid,
+          };
+          setUser(restoredUser);
+          setIsAuthenticated(true);
+          localStorage.setItem('careerpath_user', JSON.stringify(restoredUser));
+          localStorage.setItem('careerpath_auth_state', 'true');
+          syncUserProfileToFirestore(restoredUser).catch(() => {});
+          console.log(`[USER SESSION] Restored saved profile for: ${restoredUser.name} (${restoredUser.email})`);
+          return;
+        }
+      } catch {}
+    }
+
     const freshUser = createFreshUserProfile({
       ...userData,
       id: targetUid,
       uid: targetUid,
+      xp: 0, // Starts fresh from 0
+      streakDays: 0,
+      completedAssessment: false,
       onboardingCompleted: isNew ? false : (userData.onboardingCompleted ?? false),
     });
+
     const freshResume = createFreshResumeData(freshUser);
     const freshGoal = createFreshStudyGoal();
     const freshBadgesList = createFreshBadges();
+    const zeroScores: AptitudeScores = {
+      logical: 0,
+      quantitative: 0,
+      verbal: 0,
+      problemSolving: 0,
+      spatialMechanical: 0,
+      riasec: {
+        realistic: 0,
+        investigative: 0,
+        artistic: 0,
+        social: 0,
+        enterprising: 0,
+        conventional: 0,
+      },
+    };
 
     setUser(freshUser);
+    setScores(zeroScores);
     setResumeData(freshResume);
     setStudyGoal(freshGoal);
     setPracticeSessions([]); // Zero practice sessions initially
@@ -314,8 +363,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCareerBadges(freshBadgesList); // All badges locked
     setIsAuthenticated(true);
 
-    // Save user-scoped backup
+    // Save user-scoped backup and permanent persistence
     localStorage.setItem('careerpath_user', JSON.stringify(freshUser));
+    localStorage.setItem(`careerpath_user_${targetUid}`, JSON.stringify(freshUser));
+    localStorage.setItem('careerpath_scores', JSON.stringify(zeroScores));
     localStorage.setItem('careerpath_resume', JSON.stringify(freshResume));
     localStorage.setItem('careerpath_study_goal', JSON.stringify(freshGoal));
     localStorage.setItem('careerpath_practice_sessions', JSON.stringify([]));
@@ -325,9 +376,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (targetUid && targetUid !== 'guest') {
       syncUserProfileToFirestore(freshUser).catch(() => {});
+      fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: freshUser }),
+      }).catch(() => {});
     }
 
-    console.log(`[USER SESSION] Started fresh from zero for: ${freshUser.name} (${freshUser.email})`);
+    console.log(`[USER SESSION] Initialized fresh 0% progress and saved data for: ${freshUser.name} (${freshUser.email})`);
   };
 
   /**

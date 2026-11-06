@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { JourneyTimeline } from './components/JourneyTimeline';
@@ -18,6 +19,7 @@ import { OnboardingProfileWizard } from './components/OnboardingProfileWizard';
 import { Compass, Sparkles, Heart } from 'lucide-react';
 
 function AppContent() {
+  const { t } = useTranslation();
   const {
     activeTab,
     setActiveTab,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   CheckCircle2,
@@ -37,156 +37,176 @@ export const FourYearRoadmap: React.FC = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState<number | 'all'>('all');
 
-  // Interactive milestone state initialized from user activities
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    // Year 1
-    {
-      id: 'm-assess-passed',
-      year: 1,
-      title: 'Assessment Passed',
-      category: 'Foundation',
-      status: user.completedAssessment ? 'completed' : 'in_progress',
-      description: 'Completed Stage 1 cognitive aptitude evaluation, RIASEC vocational index, and psychometric profile.',
-      criteria: 'Attain 70%+ across Logical, Quantitative, and Verbal assessments.',
-      dateCompleted: 'Aug 2023 • Verified',
-      xpReward: 150,
-      targetModule: 'discover',
-    },
-    {
-      id: 'm-branch-fit',
-      year: 1,
-      title: 'Branch Fit Confirmed',
-      category: 'Foundation',
-      status: 'completed',
-      description: 'Selected primary engineering branch (CSE) and analyzed 4-year curriculum roadmap & syllabus overlap.',
-      criteria: 'Review year-by-year syllabus and complete branch discovery matrix.',
-      dateCompleted: 'Sept 2023 • Verified',
-      xpReward: 100,
-      targetModule: 'branches',
-    },
-    {
-      id: 'm-prog-basics',
-      year: 1,
-      title: 'Engineering Foundations Mastered',
-      category: 'Technical',
-      status: 'completed',
-      description: 'Built core competencies in C/C++, basic algorithms, Linux terminal workflows, and Git version control.',
-      criteria: 'Pass 1st year CS fundamentals and engineering math.',
-      dateCompleted: 'May 2024 • Verified',
-      xpReward: 120,
-      targetModule: 'practice',
-    },
+  // Interactive milestone state initialized from user activities and saved progress
+  const [milestones, setMilestones] = useState<Milestone[]>(() => {
+    const isNewUser = (!user.xp || user.xp === 0) && !user.completedAssessment && user.id !== 'usr-pratham';
+    const saved = localStorage.getItem(`careerpath_roadmap_${user.id}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
 
-    // Year 2
-    {
-      id: 'm-dsa-100',
-      year: 2,
-      title: 'DSA 100 Solved',
-      category: 'Technical',
-      status: 'completed',
-      description: 'Mastered fundamental Data Structures: Arrays, Hash Maps, Linked Lists, Binary Trees, and Recursion.',
-      criteria: 'Solve 100+ problems across Easy & Medium tiers on LeetCode/GFG.',
-      dateCompleted: 'Jan 2025 • Verified',
-      xpReward: 250,
-      targetModule: 'practice',
-    },
-    {
-      id: 'm-fullstack-app',
-      year: 2,
-      title: 'First Full-Stack Project Deployed',
-      category: 'Technical',
-      status: 'completed',
-      description: 'Engineered and deployed a production web application with relational database, authentication, and live cloud URL.',
-      criteria: 'Public GitHub repo with documentation, CI/CD, and live demo link.',
-      dateCompleted: 'Apr 2025 • Verified',
-      xpReward: 200,
-      targetModule: 'resume',
-    },
-    {
-      id: 'm-hackathon',
-      year: 2,
-      title: 'National Hackathon Entry',
-      category: 'Technical',
-      status: 'completed',
-      description: 'Collaborated in 36-hour Smart India Hackathon internal qualifier with prototype demonstration.',
-      criteria: 'Submit working software solution in team setting.',
-      dateCompleted: 'June 2025 • Verified',
-      xpReward: 180,
-      targetModule: 'practice',
-    },
+    const initialMilestones: Milestone[] = [
+      // Year 1
+      {
+        id: 'm-assess-passed',
+        year: 1,
+        title: 'Stage 1 Assessment Passed',
+        category: 'Foundation',
+        status: user.completedAssessment ? 'completed' : (isNewUser ? 'in_progress' : 'completed'),
+        description: 'Completed Stage 1 cognitive aptitude evaluation, RIASEC vocational index, and psychometric profile.',
+        criteria: 'Attain 70%+ across Logical, Quantitative, and Verbal assessments.',
+        dateCompleted: user.completedAssessment ? 'Completed' : undefined,
+        xpReward: 150,
+        targetModule: 'discover',
+      },
+      {
+        id: 'm-branch-fit',
+        year: 1,
+        title: 'Branch Fit Confirmed',
+        category: 'Foundation',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: `Selected primary engineering branch (${user.selectedBranch || 'CSE'}) and analyzed 4-year curriculum roadmap & syllabus overlap.`,
+        criteria: 'Review year-by-year syllabus and complete branch discovery matrix.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 100,
+        targetModule: 'branches',
+      },
+      {
+        id: 'm-prog-basics',
+        year: 1,
+        title: 'Engineering Foundations Mastered',
+        category: 'Technical',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: 'Built core competencies in C/C++, basic algorithms, Linux terminal workflows, and Git version control.',
+        criteria: 'Pass 1st year CS fundamentals and engineering math.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 120,
+        targetModule: 'practice',
+      },
 
-    // Year 3
-    {
-      id: 'm-internship-sec',
-      year: 3,
-      title: 'Internship Secured',
-      category: 'Industrial',
-      status: applications.some((a) => a.status === 'Offer' || a.status === 'Interview') ? 'completed' : 'completed',
-      description: 'Awarded summer industrial software internship with live stipend (₹35,000/mo) at leading tech company.',
-      criteria: 'Clear screening test, technical rounds, and receive formal offer letter.',
-      dateCompleted: 'Sept 2025 • Industrial Milestone',
-      xpReward: 350,
-      targetModule: 'internships',
-    },
-    {
-      id: 'm-ats-resume',
-      year: 3,
-      title: 'ATS Resume Certified (85%+)',
-      category: 'Industrial',
-      status: 'completed',
-      description: 'Crafted Google XYZ-bullet resume with verified CGPA, tech stack tags, and quantified metrics.',
-      criteria: 'Achieve 85%+ score on Indian Recruiter ATS scanner.',
-      dateCompleted: 'Nov 2025 • Verified',
-      xpReward: 150,
-      targetModule: 'resume',
-    },
-    {
-      id: 'm-gd-speech',
-      year: 3,
-      title: 'Campus GD & Speech Cleared',
-      category: 'Industrial',
-      status: 'in_progress',
-      description: 'Trained speech delivery to optimal 120-150 WPM cadence with zero filler words using Web Speech AI.',
-      criteria: 'Complete 3 Voice GD Simulations with 80%+ fluency score.',
-      xpReward: 180,
-      targetModule: 'practice',
-    },
+      // Year 2
+      {
+        id: 'm-dsa-100',
+        year: 2,
+        title: 'DSA 100 Solved',
+        category: 'Technical',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: 'Mastered fundamental Data Structures: Arrays, Hash Maps, Linked Lists, Binary Trees, and Recursion.',
+        criteria: 'Solve 100+ problems across Easy & Medium tiers on LeetCode/GFG.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 250,
+        targetModule: 'practice',
+      },
+      {
+        id: 'm-fullstack-app',
+        year: 2,
+        title: 'First Full-Stack Project Deployed',
+        category: 'Technical',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: 'Engineered and deployed a production web application with relational database, authentication, and live cloud URL.',
+        criteria: 'Public GitHub repo with documentation, CI/CD, and live demo link.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 200,
+        targetModule: 'resume',
+      },
+      {
+        id: 'm-hackathon',
+        year: 2,
+        title: 'National Hackathon Entry',
+        category: 'Technical',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: 'Collaborated in 36-hour Smart India Hackathon internal qualifier with prototype demonstration.',
+        criteria: 'Submit working software solution in team setting.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 180,
+        targetModule: 'practice',
+      },
 
-    // Year 4
-    {
-      id: 'm-tcs-mock',
-      year: 4,
-      title: 'TCS NQT / MAANG Mock 80%+',
-      category: 'Placement',
-      status: 'in_progress',
-      description: 'Scoring consistently in 85th+ percentile on full-length company pattern diagnostic tests.',
-      criteria: 'Clear Advanced Coding & Foundation tests within strict sectional cutoff.',
-      xpReward: 300,
-      targetModule: 'practice',
-    },
-    {
-      id: 'm-capstone',
-      year: 4,
-      title: 'Final Year Capstone Project',
-      category: 'Placement',
-      status: 'upcoming',
-      description: 'Major IEEE/Industry sponsored senior capstone with research paper submission or live deployment.',
-      criteria: 'Faculty defense and working industry demonstration.',
-      xpReward: 250,
-      targetModule: 'resume',
-    },
-    {
-      id: 'm-placement-offer',
-      year: 4,
-      title: 'Day-1 Placement Offer In-Hand',
-      category: 'Placement',
-      status: 'upcoming',
-      description: 'Final campus placement offer secured at target compensation (₹18+ LPA).',
-      criteria: 'Receive official campus placement cell offer letter.',
-      xpReward: 500,
-      targetModule: 'interview',
-    },
-  ]);
+      // Year 3
+      {
+        id: 'm-internship-sec',
+        year: 3,
+        title: 'Internship Secured',
+        category: 'Industrial',
+        status: isNewUser ? 'upcoming' : (applications.some((a) => a.status === 'Offer') ? 'completed' : 'in_progress'),
+        description: 'Awarded summer industrial software internship with live stipend at leading tech company.',
+        criteria: 'Clear screening test, technical rounds, and receive formal offer letter.',
+        dateCompleted: isNewUser ? undefined : 'Industrial Milestone',
+        xpReward: 350,
+        targetModule: 'internships',
+      },
+      {
+        id: 'm-ats-resume',
+        year: 3,
+        title: 'ATS Resume Certified (85%+)',
+        category: 'Industrial',
+        status: isNewUser ? 'upcoming' : 'completed',
+        description: 'Crafted Google XYZ-bullet resume with verified CGPA, tech stack tags, and quantified metrics.',
+        criteria: 'Achieve 85%+ score on Indian Recruiter ATS scanner.',
+        dateCompleted: isNewUser ? undefined : 'Verified',
+        xpReward: 150,
+        targetModule: 'resume',
+      },
+      {
+        id: 'm-gd-speech',
+        year: 3,
+        title: 'Campus GD & Speech Cleared',
+        category: 'Industrial',
+        status: isNewUser ? 'upcoming' : 'in_progress',
+        description: 'Trained speech delivery to optimal 120-150 WPM cadence with zero filler words using Web Speech AI.',
+        criteria: 'Complete 3 Voice GD Simulations with 80%+ fluency score.',
+        xpReward: 180,
+        targetModule: 'practice',
+      },
+
+      // Year 4
+      {
+        id: 'm-tcs-mock',
+        year: 4,
+        title: 'TCS NQT / MAANG Mock 80%+',
+        category: 'Placement',
+        status: isNewUser ? 'upcoming' : 'in_progress',
+        description: 'Scoring consistently in 85th+ percentile on full-length company pattern diagnostic tests.',
+        criteria: 'Clear Advanced Coding & Foundation tests within strict sectional cutoff.',
+        xpReward: 300,
+        targetModule: 'practice',
+      },
+      {
+        id: 'm-capstone',
+        year: 4,
+        title: 'Final Year Capstone Project',
+        category: 'Placement',
+        status: 'upcoming',
+        description: 'Major IEEE/Industry sponsored senior capstone with research paper submission or live deployment.',
+        criteria: 'Faculty defense and working industry demonstration.',
+        xpReward: 250,
+        targetModule: 'resume',
+      },
+      {
+        id: 'm-placement-offer',
+        year: 4,
+        title: 'Day-1 Placement Offer In-Hand',
+        category: 'Placement',
+        status: 'upcoming',
+        description: 'Final campus placement offer secured at target compensation (₹18+ LPA).',
+        criteria: 'Receive official campus placement cell offer letter.',
+        xpReward: 500,
+        targetModule: 'interview',
+      },
+    ];
+
+    return initialMilestones;
+  });
+
+  // Persist milestone changes whenever updated
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(`careerpath_roadmap_${user.id}`, JSON.stringify(milestones));
+    }
+  }, [milestones, user?.id]);
 
   const completedCount = milestones.filter((m) => m.status === 'completed').length;
   const progressPercent = Math.round((completedCount / milestones.length) * 100);

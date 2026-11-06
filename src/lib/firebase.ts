@@ -12,6 +12,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
+  sendEmailVerification,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -617,15 +618,28 @@ export function setupFirebaseRecaptcha(
     const container = document.getElementById(containerId);
     if (!container) return null;
 
+    // Clear any previous active widget instance to avoid re-render collision
+    if ((window as any).recaptchaVerifier) {
+      try {
+        (window as any).recaptchaVerifier.clear();
+      } catch (err) {
+        console.warn('Recaptcha clear notice:', err);
+      }
+      (window as any).recaptchaVerifier = undefined;
+    }
+
     const verifier = new RecaptchaVerifier(auth, containerId, {
       size: 'invisible',
       callback: () => {
+        console.log('[FIREBASE RECAPTCHA] Verified successfully.');
         if (callback) callback();
       },
       'expired-callback': () => {
-        console.warn('Firebase reCAPTCHA expired. Resetting.');
+        console.warn('[FIREBASE RECAPTCHA] Verification expired.');
       },
     });
+
+    (window as any).recaptchaVerifier = verifier;
     return verifier;
   } catch (e) {
     console.warn('Firebase RecaptchaVerifier initialization notice:', e);
@@ -643,6 +657,41 @@ export async function sendFirebasePhoneOtp(
   } catch (error) {
     console.warn('Firebase Phone Auth notice:', error);
     throw error;
+  }
+}
+
+/**
+ * Sends student account verification email explicitly branded from YUKTI
+ */
+export async function sendYuktiEmailVerification(user?: User | null): Promise<boolean> {
+  const targetUser = user || auth.currentUser;
+  if (!targetUser) {
+    return false;
+  }
+
+  const actionCodeSettings = {
+    url: typeof window !== 'undefined' ? `${window.location.origin}?verified=true` : 'https://yukti.ac.in',
+    handleCodeInApp: true,
+  };
+
+  try {
+    await sendEmailVerification(targetUser, actionCodeSettings);
+    console.log(`[YUKTI] Sent Firebase verification email to ${targetUser.email}`);
+  } catch (fbErr) {
+    console.warn('Firebase client sendEmailVerification fallback:', fbErr);
+  }
+
+  // Always invoke YUKTI server-side dispatcher for guaranteed delivery with YUKTI sender branding
+  try {
+    const res = await fetch('/api/auth/send-verification-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: targetUser.email, name: targetUser.displayName || 'Engineering Student' }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn('Backend email dispatch error:', e);
+    return false;
   }
 }
 

@@ -1,14 +1,16 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
 import { Compass, BookOpen, Wrench, Briefcase, Award } from 'lucide-react';
 
 export const JourneyTimeline: React.FC = () => {
+  const { t } = useTranslation();
   const { activeTab, setActiveTab, user } = useApp();
 
   const stages = [
     {
       id: 'discover',
-      stageNum: 'Stage 1',
+      stageNum: t('nav.discover', 'Stage 1: Discover'),
       title: 'Branch Discovery',
       target: 'Class 12 / JEE / 1st Year',
       desc: 'Cognitive Aptitude & RIASEC Fit',
@@ -16,7 +18,7 @@ export const JourneyTimeline: React.FC = () => {
     },
     {
       id: 'branches',
-      stageNum: 'Stage 2',
+      stageNum: t('nav.branches', 'Stage 2: Branches'),
       title: 'Curriculum & Careers',
       target: '1st - 2nd Year',
       desc: '4-Year Syllabus & 20+ Roadmaps',
@@ -24,7 +26,7 @@ export const JourneyTimeline: React.FC = () => {
     },
     {
       id: 'practice',
-      stageNum: 'Stage 3',
+      stageNum: t('nav.practice', 'Stage 3: Practice'),
       title: 'Skill Builder',
       target: '2nd - 3rd Year',
       desc: 'Company Mocks, DSA & Speech Lab',
@@ -32,7 +34,7 @@ export const JourneyTimeline: React.FC = () => {
     },
     {
       id: 'interview',
-      stageNum: 'Stage 4',
+      stageNum: t('nav.interview', 'Stage 4: Interview'),
       title: 'Placement Readiness',
       target: '3rd - 4th Year',
       desc: 'AI Mock Interviews & ATS Resume',
@@ -40,7 +42,7 @@ export const JourneyTimeline: React.FC = () => {
     },
     {
       id: 'internships',
-      stageNum: 'Launchpad',
+      stageNum: t('nav.internships', 'Internships'),
       title: 'Internships & Jobs',
       target: 'Final Year / Placements',
       desc: '25+ Indian Drives & Gap Roadmaps',

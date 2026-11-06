@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { RadarChart } from '../components/RadarChart';
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
+  const { t } = useTranslation();
   const {
     isAuthenticated,
     user,
@@ -43,7 +45,6 @@ export const DashboardView: React.FC = () => {
     setSelectedBranchForModal,
     setShowUniqueFeaturesModal,
     setIsAuthModalOpen,
-    language,
   } = useApp();
 
   const readiness = calculatePlacementReadiness(user);
@@ -136,20 +137,30 @@ export const DashboardView: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                  Welcome back, <span className="text-orange-400">{user.name}</span>!
+                  {t('dashboard.welcomeBack', { name: user.name, defaultValue: `Welcome back, ${user.name}!` })}
                 </h1>
                 <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
-                  Targeting: <strong className="text-white font-semibold">{user.careerGoal}</strong>. You are currently on track with a{' '}
-                  <span className="text-emerald-400 font-bold">{readiness.overallScore}%</span> Placement Readiness Index.
+                  {t('dashboard.targeting', 'Targeting')}: <strong className="text-white font-semibold">{user.careerGoal || 'Software Engineer / Campus Placement'}</strong>.{' '}
+                  {readiness.overallScore === 0 ? (
+                    <span className="text-amber-300 font-bold">
+                      {t('dashboard.zeroStartNotice', 'Account initialized fresh from 0%. Complete your first practice or mock interview to begin your climb!')}
+                    </span>
+                  ) : (
+                    <>
+                      You are currently on track with a{' '}
+                      <span className="text-emerald-400 font-bold">{readiness.overallScore}%</span>{' '}
+                      {t('dashboard.placementIndex', 'Placement Readiness Index')}.
+                    </>
+                  )}
                 </p>
               </>
             ) : (
               <>
                 <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                  Welcome to <span className="text-orange-400">YUKTI</span>!
+                  {t('dashboard.welcome', 'Welcome to YUKTI!')}
                 </h1>
                 <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
-                  Sign in or create a fresh student account to start your personalized 4-year journey from fresh zero with custom roadmaps, study goals, and ATS resumes.
+                  Sign in or create a fresh student account to start your personalized 4-year journey from fresh 0% with custom roadmaps, study goals, and ATS resumes.
                 </p>
               </>
             )}

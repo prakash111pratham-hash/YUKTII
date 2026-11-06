@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
+import { LanguageSelector } from './LanguageSelector';
 import {
   Sparkles,
   Flame,
@@ -22,13 +24,12 @@ import {
 import { NotificationBell } from './NotificationBell';
 
 export const Navbar: React.FC = () => {
+  const { t } = useTranslation();
   const {
     isAuthenticated,
     user,
     activeTab,
     setActiveTab,
-    language,
-    setLanguage,
     setShowUniqueFeaturesModal,
     setIsAuthModalOpen,
   } = useApp();
@@ -36,15 +37,15 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { id: 'dashboard', label: language === 'hi' ? 'डैशबोर्ड' : 'Dashboard', icon: LayoutDashboard },
-    { id: 'discover', label: language === 'hi' ? 'स्टेज 1: खोज' : 'Stage 1: Discover', icon: Compass },
-    { id: 'branches', label: language === 'hi' ? 'स्टेज 2: ब्रांचेस' : 'Stage 2: Branches', icon: BookOpen },
-    { id: 'practice', label: language === 'hi' ? 'स्टेज 3: अभ्यास' : 'Stage 3: Practice', icon: Wrench },
-    { id: 'interview', label: language === 'hi' ? 'स्टेज 4: इंटरव्यू' : 'Stage 4: Interview', icon: Award },
-    { id: 'resume', label: language === 'hi' ? 'रेज़्युमे' : 'Resume', icon: User },
-    { id: 'internships', label: language === 'hi' ? 'इंटर्नशिप' : 'Internships', icon: Briefcase },
-    { id: 'workspace', label: language === 'hi' ? 'वर्कस्पेस हब' : 'Workspace Hub', icon: Mail },
-    { id: 'admin', label: language === 'hi' ? 'टीपीओ / कॉलेज' : 'TPO & Analytics', icon: ShieldCheck },
+    { id: 'dashboard', label: t('nav.dashboard', 'Dashboard'), icon: LayoutDashboard },
+    { id: 'discover', label: t('nav.discover', 'Stage 1: Discover'), icon: Compass },
+    { id: 'branches', label: t('nav.branches', 'Stage 2: Branches'), icon: BookOpen },
+    { id: 'practice', label: t('nav.practice', 'Stage 3: Practice'), icon: Wrench },
+    { id: 'interview', label: t('nav.interview', 'Stage 4: Interview'), icon: Award },
+    { id: 'resume', label: t('nav.resume', 'Resume'), icon: User },
+    { id: 'internships', label: t('nav.internships', 'Internships'), icon: Briefcase },
+    { id: 'workspace', label: t('nav.workspace', 'Workspace Hub'), icon: Mail },
+    { id: 'admin', label: t('nav.admin', 'TPO & Analytics'), icon: ShieldCheck },
   ];
 
   const handleNavClick = (tabId: string) => {
@@ -77,7 +78,7 @@ export const Navbar: React.FC = () => {
                   </span>
                 </div>
                 <span className="block text-[9px] font-bold text-orange-700 tracking-wider uppercase">
-                  {language === 'hi' ? 'चुनें · सीखें · सफल हों' : 'CHOOSE · BUILD · GET PLACED'}
+                  {t('tagline', 'CHOOSE · BUILD · GET PLACED')}
                 </span>
               </div>
             </button>
@@ -148,16 +149,8 @@ export const Navbar: React.FC = () => {
               </>
             )}
 
-            {/* Bilingual Hindi/English Switcher */}
-            <button
-              type="button"
-              onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-200 bg-white text-xs font-bold text-slate-800 hover:bg-orange-50 transition-colors cursor-pointer"
-              title="Toggle English / Hindi language"
-            >
-              <Globe className="w-3.5 h-3.5 text-orange-600" />
-              <span>{language === 'en' ? 'HI (हिन्दी)' : 'EN (English)'}</span>
-            </button>
+            {/* Multi-language regional Indian language selector */}
+            <LanguageSelector />
 
             {/* User Profile & Auth Pill */}
             {isAuthenticated && user ? (

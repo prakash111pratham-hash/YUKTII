@@ -513,19 +513,24 @@ export function calculatePlacementReadiness(profile: Partial<UserProfile>, custo
   technical?: number;
   resume?: number;
 }): PlacementReadinessMeter {
-  const aptitude = customScores?.aptitude ?? 72;
-  const coding = customScores?.coding ?? 65;
-  const communication = customScores?.communication ?? 70;
-  const technical = customScores?.technical ?? 68;
-  const resume = customScores?.resume ?? 75;
+  // If the student is new and has not completed any assessment or practice sessions, strictly start at 0%
+  const isZeroState = !profile?.completedAssessment && (!profile?.xp || profile.xp === 0);
 
-  const weightedScore = Math.round(
-    aptitude * 0.2 +
-    coding * 0.25 +
-    communication * 0.2 +
-    technical * 0.2 +
-    resume * 0.15
-  );
+  const aptitude = customScores?.aptitude ?? (isZeroState ? 0 : 72);
+  const coding = customScores?.coding ?? (isZeroState ? 0 : 65);
+  const communication = customScores?.communication ?? (isZeroState ? 0 : 70);
+  const technical = customScores?.technical ?? (isZeroState ? 0 : 68);
+  const resume = customScores?.resume ?? (isZeroState ? 0 : 75);
+
+  const weightedScore = isZeroState
+    ? 0
+    : Math.round(
+        aptitude * 0.2 +
+        coding * 0.25 +
+        communication * 0.2 +
+        technical * 0.2 +
+        resume * 0.15
+      );
 
   let readinessBand: PlacementReadinessMeter['readinessBand'] = 'Beginner Phase';
   if (weightedScore >= 82) readinessBand = 'Day-1 Ready';
