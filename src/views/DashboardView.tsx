@@ -11,6 +11,7 @@ import { FourYearRoadmap } from '../components/FourYearRoadmap';
 import { FourYearGrowthDashboard } from '../components/FourYearGrowthDashboard';
 import { SkillHeatmap } from '../components/SkillHeatmap';
 import { DailyStudyGoal } from '../components/DailyStudyGoal';
+import { TopPerformersLeaderboard } from '../components/TopPerformersLeaderboard';
 import { LevelProgression } from '../components/LevelProgression';
 import { UserProfileSection } from '../components/UserProfileSection';
 import {
@@ -240,8 +241,11 @@ export const DashboardView: React.FC = () => {
       {/* Interactive 4-Year Journey Roadmap (Milestones: Assessment Passed, Internship Secured, etc.) */}
       <FourYearRoadmap />
 
-      {/* Daily Study Goal Tracker Component */}
+      {/* Daily Study Goal Tracker Widget (Focus Hours & Coding Problem Targets Synced to Firestore) */}
       <DailyStudyGoal />
+
+      {/* Top Performers Campus Leaderboard Component (Ranked by Mock Test Topper Badges & Overall Platform Points) */}
+      <TopPerformersLeaderboard />
 
       {/* Multi-Domain Skill Progression Heatmap */}
       <SkillHeatmap />

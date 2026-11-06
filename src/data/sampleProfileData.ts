@@ -85,6 +85,8 @@ export const SAMPLE_APPLICATIONS: ApplicationRecord[] = [];
 export const SAMPLE_STUDY_GOAL: DailyStudyGoal = {
   targetHours: 3.0,
   studiedHoursToday: 0.0,
+  targetCodingProblems: 5,
+  solvedCodingProblemsToday: 0,
   streakDays: 0,
   lastUpdated: new Date().toISOString(),
 };
@@ -347,6 +349,8 @@ export function createFreshStudyGoal(): DailyStudyGoal {
   return {
     targetHours: 3.0,
     studiedHoursToday: 0.0,
+    targetCodingProblems: 5,
+    solvedCodingProblemsToday: 0,
     streakDays: 0,
     lastUpdated: new Date().toISOString(),
   };

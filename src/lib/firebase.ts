@@ -650,10 +650,10 @@ export async function syncDailyGoalToFirestore(
   userId: string,
   goal: DailyStudyGoal
 ): Promise<void> {
-  if (!auth.currentUser) {
+  const currentUid = auth.currentUser?.uid || userId;
+  if (!currentUid || currentUid === 'guest') {
     return;
   }
-  const currentUid = auth.currentUser.uid;
   const todayKey = new Date().toISOString().slice(0, 10);
   const path = `users/${currentUid}/studyGoals/${todayKey}`;
   try {
@@ -664,6 +664,8 @@ export async function syncDailyGoalToFirestore(
         userId: currentUid,
         targetHours: goal.targetHours,
         studiedHours: goal.studiedHoursToday,
+        targetCodingProblems: goal.targetCodingProblems || 5,
+        solvedCodingProblems: goal.solvedCodingProblemsToday || 0,
         streakDays: goal.streakDays,
         date: todayKey,
         updatedAt: new Date().toISOString(),

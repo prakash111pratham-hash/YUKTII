@@ -46,8 +46,26 @@ export interface PracticeSessionRecord {
 export interface DailyStudyGoal {
   targetHours: number;
   studiedHoursToday: number;
+  targetCodingProblems?: number;
+  solvedCodingProblemsToday?: number;
   streakDays: number;
   lastUpdated: string;
+}
+
+export interface TopPerformerStudent {
+  id: string;
+  rank: number;
+  name: string;
+  avatar?: string;
+  college: string;
+  branch: BranchCode;
+  batchYear: string;
+  xp: number;
+  mockTestTopperBadges: number;
+  topMockScore: number;
+  interviewStreakDays: number;
+  recentAchievement: string;
+  isCurrentUser?: boolean;
 }
 
 export interface CareerBadge {

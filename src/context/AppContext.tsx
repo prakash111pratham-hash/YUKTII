@@ -67,6 +67,7 @@ interface AppContextType {
   studyGoal: DailyStudyGoal;
   updateStudyGoal: (updates: Partial<DailyStudyGoal>) => void;
   logStudyTime: (minutes: number, domain?: EngineeringDomain) => void;
+  logCodingProblems: (count: number) => void;
   careerBadges: CareerBadge[];
   unlockBadge: (badgeId: string) => void;
   isAuthModalOpen: boolean;
@@ -428,6 +429,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addPracticeSession(newSession);
   };
 
+  const logCodingProblems = (count: number) => {
+    setStudyGoal((prev) => {
+      const nextCount = (prev.solvedCodingProblemsToday || 0) + count;
+      return {
+        ...prev,
+        solvedCodingProblemsToday: nextCount,
+        lastUpdated: new Date().toISOString(),
+      };
+    });
+    incrementXp(count * 25, `Solved ${count} daily practice problem(s)`);
+  };
+
   const unlockBadge = (badgeId: string) => {
     setCareerBadges((prev) =>
       prev.map((b) => {
@@ -491,6 +504,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         studyGoal,
         updateStudyGoal,
         logStudyTime,
+        logCodingProblems,
         careerBadges,
         unlockBadge,
         isAuthModalOpen,

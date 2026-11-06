@@ -79,6 +79,8 @@
         "userId": { "type": "string" },
         "targetHours": { "type": "number" },
         "studiedHours": { "type": "number" },
+        "targetCodingProblems": { "type": "number" },
+        "solvedCodingProblems": { "type": "number" },
         "date": { "type": "string", "maxLength": 30 },
         "streakDays": { "type": "number" },
         "updatedAt": { "type": "string" }
